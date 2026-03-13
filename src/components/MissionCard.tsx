@@ -1,4 +1,5 @@
 "use client";
+import { ListRow } from "@toss/tds-mobile";
 import { Mission } from "@/types/plant";
 
 interface Props {
@@ -9,27 +10,43 @@ interface Props {
 
 export default function MissionCard({ mission, isCompleted, onComplete }: Props) {
   return (
-    <button
+    <ListRow
+      as="button"
       onClick={() => !isCompleted && onComplete(mission.id)}
       disabled={isCompleted}
-      className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all duration-200 text-left ${
-        isCompleted
-          ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
-          : 'border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800 active:scale-95 hover:border-[#00C473]'
-      }`}
-    >
-      <span className="text-2xl">{mission.emoji}</span>
-      <div className="flex-1">
-        <p className={`text-sm font-semibold ${isCompleted ? 'text-green-600 dark:text-green-400 line-through' : 'text-gray-800 dark:text-white'}`}>
-          {mission.label}
-        </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500">+{mission.xpReward} XP</p>
-      </div>
-      <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
-        isCompleted ? 'border-green-500 bg-green-500' : 'border-gray-300 dark:border-gray-600'
-      }`}>
-        {isCompleted && <span className="text-white text-xs">✓</span>}
-      </div>
-    </button>
+      border="none"
+      verticalPadding="small"
+      horizontalPadding="small"
+      left={<span className="text-2xl">{mission.emoji}</span>}
+      contents={
+        <ListRow.Texts
+          type="2RowTypeA"
+          top={
+            isCompleted
+              ? <span style={{ textDecoration: 'line-through' }}>{mission.label}</span>
+              : mission.label
+          }
+          topProps={{ fontWeight: 'semibold', color: isCompleted ? '#16a34a' : undefined }}
+          bottom={`+${mission.xpReward} XP`}
+        />
+      }
+      right={
+        <div
+          className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-200 ${
+            isCompleted ? 'border-green-500 bg-green-500' : 'border-gray-300 dark:border-gray-600'
+          }`}
+        >
+          {isCompleted && <span className="text-white text-xs font-bold">✓</span>}
+        </div>
+      }
+      style={{
+        borderRadius: 16,
+        width: '100%',
+        backgroundColor: isCompleted ? '#f0fdf4' : '#ffffff',
+        border: `2px solid ${isCompleted ? '#bbf7d0' : '#f3f4f6'}`,
+        transition: 'all 0.2s',
+        textAlign: 'left',
+      }}
+    />
   );
 }

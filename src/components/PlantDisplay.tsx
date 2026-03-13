@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { ProgressBar } from "@toss/tds-mobile";
 import { PlantStage } from "@/types/plant";
 import { STAGE_INFO } from "@/lib/plantState";
 import { useEffect, useState } from "react";
@@ -16,7 +17,7 @@ interface Props {
 export default function PlantDisplay({ stage, isWilting, isDead, xp, xpRequired, justLeveledUp }: Props) {
   const [celebrating, setCelebrating] = useState(false);
   const info = STAGE_INFO[stage];
-  const progress = Math.min((xp / xpRequired) * 100, 100);
+  const progress = Math.min(xp / xpRequired, 1);
 
   useEffect(() => {
     if (justLeveledUp) {
@@ -71,16 +72,16 @@ export default function PlantDisplay({ stage, isWilting, isDead, xp, xpRequired,
       {/* XP Progress bar */}
       {!isDead && stage !== 'special' && (
         <div className="w-full px-4">
-          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
             <span>성장 진행도</span>
             <span>{xp} / {xpRequired} XP</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div
-              className="h-2 rounded-full transition-all duration-700"
-              style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #00C473, #0066FF)' }}
-            />
-          </div>
+          <ProgressBar
+            progress={progress}
+            size="normal"
+            color="#00C473"
+            animate
+          />
         </div>
       )}
       {stage === 'special' && (
