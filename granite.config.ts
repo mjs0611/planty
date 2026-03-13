@@ -5,7 +5,7 @@ export default defineConfig({
   brand: {
     displayName: "초록하루",
     primaryColor: "#00C473",
-    icon: "https://placeholder.example.com/icon-512.png",
+    icon: "/icon-512.png",
   },
   permissions: [],
   web: {

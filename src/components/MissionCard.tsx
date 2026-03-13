@@ -33,20 +33,19 @@ export default function MissionCard({ mission, isCompleted, onComplete }: Props)
       right={
         <div
           className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-200 ${
-            isCompleted ? 'border-green-500 bg-green-500' : 'border-gray-300 dark:border-gray-600'
+            isCompleted
+              ? 'border-green-500 bg-green-500'
+              : 'border-gray-300 dark:border-gray-600'
           }`}
         >
           {isCompleted && <span className="text-white text-xs font-bold">✓</span>}
         </div>
       }
-      style={{
-        borderRadius: 16,
-        width: '100%',
-        backgroundColor: isCompleted ? '#f0fdf4' : '#ffffff',
-        border: `2px solid ${isCompleted ? '#bbf7d0' : '#f3f4f6'}`,
-        transition: 'all 0.2s',
-        textAlign: 'left',
-      }}
+      className={`w-full rounded-2xl border-2 text-left transition-all duration-200 ${
+        isCompleted
+          ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20'
+          : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800'
+      }`}
     />
   );
 }

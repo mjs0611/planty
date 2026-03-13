@@ -4,11 +4,13 @@ import { Top, Button, Toast } from "@toss/tds-mobile";
 import { PlantState } from "@/types/plant";
 import { loadState, saveState, completeMission, applyAdBoost, resetPlant, STAGE_INFO, isAdAvailable } from "@/lib/plantState";
 import { getMissionById } from "@/lib/missions";
+import { haptic, logEvent } from "@/lib/bridge";
 import PlantDisplay from "@/components/PlantDisplay";
 import StatBar from "@/components/StatBar";
 import MissionCard from "@/components/MissionCard";
 import AdButton from "@/components/AdButton";
 import ShareSheet from "@/components/ShareSheet";
+import BannerAd from "@/components/BannerAd";
 import { useTheme } from "@/lib/theme";
 
 export default function HomePage() {
@@ -25,13 +27,40 @@ export default function HomePage() {
     toastTimerRef.current = setTimeout(() => setToast(prev => ({ ...prev, open: false })), 2500);
   }, []);
 
+  // 앱 진입 시 상태 로드 + analytics
   useEffect(() => {
-    setPlant(loadState());
+    const state = loadState();
+    setPlant(state);
+    logEvent("screen_view", { screen: "home", stage: state.stage, streak: state.streak });
   }, []);
 
+  // 상태 변경 시 저장
   useEffect(() => {
     if (plant) saveState(plant);
   }, [plant]);
+
+  // 뒤로가기 이벤트 (토스 앱)
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    (async () => {
+      try {
+        const { graniteEvent } = await import("@apps-in-toss/web-framework");
+        const sub = graniteEvent.addEventListener("backEvent", {
+          onEvent: () => {
+            // 공유 시트가 열려있으면 닫기
+            setShowShare(prev => {
+              if (prev) return false;
+              return prev; // 닫힌 상태면 앱 기본 동작(뒤로가기)
+            });
+          },
+        });
+        cleanup = sub;
+      } catch {
+        // 앱 외부
+      }
+    })();
+    return () => cleanup?.();
+  }, []);
 
   const handleMissionComplete = useCallback((missionId: string) => {
     if (!plant) return;
@@ -39,24 +68,39 @@ export default function HomePage() {
     if (!mission) return;
     const prevStage = plant.stage;
     const newState = completeMission(plant, missionId, mission.statEffect, mission.xpReward);
+
     if (newState.stage !== prevStage) {
       setJustLeveledUp(true);
+      haptic("confetti");
       openToast(`🎊 ${STAGE_INFO[newState.stage].name}으로 레벨 업!`);
+      logEvent("level_up", { from: prevStage, to: newState.stage, streak: newState.streak });
       setTimeout(() => setJustLeveledUp(false), 2500);
     } else {
+      haptic("success");
       openToast(`${mission.emoji} ${mission.label} 완료! +${mission.xpReward} XP`);
     }
+
+    logEvent("mission_complete", {
+      mission_id: missionId,
+      mission_label: mission.label,
+      xp_reward: mission.xpReward,
+      stage: newState.stage,
+    });
+
     setPlant(newState);
   }, [plant, openToast]);
 
   const handleAdComplete = useCallback(() => {
     if (!plant) return;
     setPlant(applyAdBoost(plant));
+    haptic("success");
     openToast('📺 광고 보상 획득! 스탯 +20');
+    logEvent("ad_rewarded", { stage: plant.stage });
   }, [plant, openToast]);
 
   const handleReset = useCallback(() => {
     if (!plant?.isDead) return;
+    logEvent("plant_reset", { prev_stage: plant.stage, total_days: plant.totalDaysAlive });
     setPlant(resetPlant());
   }, [plant]);
 
@@ -96,7 +140,7 @@ export default function HomePage() {
             <span className="text-orange-500 font-semibold text-xs">🔥 {plant.streak}일</span>
             <span className="text-[var(--color-text-secondary)] text-xs">연속 케어</span>
             {streakBadge && (
-              <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full font-medium">
+              <span className="text-[10px] bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded-full font-medium">
                 {streakBadge}
               </span>
             )}
@@ -104,10 +148,13 @@ export default function HomePage() {
         }
         right={
           <div className="flex items-center gap-2">
-            <Top.RightButton onClick={() => setShowShare(true)} aria-label="공유">
+            <Top.RightButton
+              onClick={() => { setShowShare(true); logEvent("share_open", { stage: plant.stage }); }}
+              aria-label="공유하기"
+            >
               🔗
             </Top.RightButton>
-            <Top.RightButton onClick={toggle} aria-label="테마 전환">
+            <Top.RightButton onClick={toggle} aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}>
               {theme === 'dark' ? '☀️' : '🌙'}
             </Top.RightButton>
           </div>
@@ -187,9 +234,16 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Ad Area */}
+      {/* 배너 광고 */}
       {!plant.isDead && (
         <div className="mx-4 mt-3">
+          <BannerAd />
+        </div>
+      )}
+
+      {/* 리워드 광고 */}
+      {!plant.isDead && (
+        <div className="mx-4 mt-2">
           <AdButton onAdComplete={handleAdComplete} adAvailable={adAvailable} />
         </div>
       )}
