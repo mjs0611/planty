@@ -1,6 +1,6 @@
 import { PlantState, PlantStage, PlantStats } from "@/types/plant";
 import { getTodayMissions } from "./missions";
-import { format, isYesterday, parseISO } from "date-fns";
+import { format, isYesterday, parseISO, differenceInCalendarDays } from "date-fns";
 
 const STORAGE_KEY = "daily_green_state";
 
@@ -69,15 +69,31 @@ export function loadState(): PlantState {
       state.totalDaysAlive += 1;
     }
 
-    // Validate streak: if lastCareDate is before yesterday, reset streak
+    // Streak & wilting/dead: based on days since last care
     if (state.lastCareDate && state.lastCareDate !== today) {
       const lastDate = parseISO(state.lastCareDate);
-      if (!isYesterday(lastDate)) {
+      const daysSince = differenceInCalendarDays(new Date(), lastDate);
+
+      if (daysSince >= 3) {
         state.streak = 0;
+        state.isDead = true;
+        state.isWilting = false;
+      } else if (daysSince === 2) {
+        state.streak = 0;
+        state.isWilting = true;
+        state.isDead = false;
+      } else if (daysSince === 1) {
+        // Cared yesterday — streak intact, not wilting
+        state.isWilting = false;
+        state.isDead = false;
       }
+    } else if (!state.lastCareDate) {
+      // Never cared (brand new plant)
+      state.isWilting = false;
+      state.isDead = false;
     }
 
-    return applyTimeDecay(state);
+    return state;
   } catch {
     return getInitialState();
   }
@@ -88,25 +104,6 @@ export function saveState(state: PlantState): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function applyTimeDecay(state: PlantState): PlantState {
-  if (!state.lastCareTime || state.isDead) return state;
-  const lastCare = new Date(state.lastCareTime);
-  const now = new Date();
-  const hoursElapsed = (now.getTime() - lastCare.getTime()) / (1000 * 60 * 60);
-  if (hoursElapsed < 6) return state;
-
-  const decayRate = Math.min(hoursElapsed / 24, 3);
-  const newStats: PlantStats = {
-    water: Math.max(0, state.stats.water - decayRate * 15),
-    sunlight: Math.max(0, state.stats.sunlight - decayRate * 12),
-    health: Math.max(0, state.stats.health - decayRate * 10),
-  };
-
-  const isWilting = newStats.water < 30 || newStats.sunlight < 30 || newStats.health < 30;
-  const isDead = newStats.water === 0 && newStats.sunlight === 0 && newStats.health === 0;
-
-  return { ...state, stats: newStats, isWilting, isDead };
-}
 
 export function completeMission(
   state: PlantState,
@@ -141,7 +138,8 @@ export function completeMission(
 
   const newXp = state.xp + xpReward;
   const completedMissions = [...state.completedMissions, missionId];
-  const isWilting = newStats.water < 30 || newStats.sunlight < 30 || newStats.health < 30;
+  // Caring today always recovers wilting
+  const isWilting = false;
 
   let { stage, xpRequired } = state;
   let finalXp = newXp;
@@ -160,7 +158,6 @@ export function completeMission(
     xpRequired,
     stage,
     completedMissions,
-    lastCareTime: new Date().toISOString(),
     lastCareDate: newLastCareDate,
     streak: newStreak,
     isWilting,
@@ -179,7 +176,6 @@ export function applyAdBoost(state: PlantState): PlantState {
     stats: boostedStats,
     xp: Math.min(state.xpRequired - 1, state.xp + 30),
     isWilting: false,
-    lastCareTime: new Date().toISOString(),
     adLastWatched: new Date().toISOString(),
   };
 }

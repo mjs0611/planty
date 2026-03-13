@@ -11,7 +11,11 @@ import MissionCard from "@/components/MissionCard";
 import AdButton from "@/components/AdButton";
 import ShareSheet from "@/components/ShareSheet";
 import BannerAd from "@/components/BannerAd";
+import Splash from "@/components/Splash";
+import Onboarding from "@/components/Onboarding";
 import { useTheme } from "@/lib/theme";
+
+const ONBOARDED_KEY = "daily_green_onboarded";
 
 export default function HomePage() {
   const [plant, setPlant] = useState<PlantState | null>(null);
@@ -20,6 +24,8 @@ export default function HomePage() {
   const [toast, setToast] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { theme, toggle } = useTheme();
+  const [showSplash, setShowSplash] = useState(true);
+  const [onboarded, setOnboarded] = useState(true); // default true to avoid flicker
 
   const openToast = useCallback((message: string) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -27,12 +33,19 @@ export default function HomePage() {
     toastTimerRef.current = setTimeout(() => setToast(prev => ({ ...prev, open: false })), 2500);
   }, []);
 
-  // 앱 진입 시 상태 로드 + analytics
+  // 앱 진입 시 상태 로드 + analytics + 온보딩 확인
   useEffect(() => {
+    const isOnboarded = localStorage.getItem(ONBOARDED_KEY) === "true";
+    setOnboarded(isOnboarded);
     const state = loadState();
     setPlant(state);
     logEvent("screen_view", { screen: "home", stage: state.stage, streak: state.streak });
   }, []);
+
+  const handleOnboardingStart = () => {
+    localStorage.setItem(ONBOARDED_KEY, "true");
+    setOnboarded(true);
+  };
 
   // 상태 변경 시 저장
   useEffect(() => {
@@ -103,6 +116,16 @@ export default function HomePage() {
     logEvent("plant_reset", { prev_stage: plant.stage, total_days: plant.totalDaysAlive });
     setPlant(resetPlant());
   }, [plant]);
+
+  // Splash (always shown briefly on load)
+  if (showSplash) {
+    return <Splash onDone={() => setShowSplash(false)} />;
+  }
+
+  // Onboarding (first launch only)
+  if (!onboarded) {
+    return <Onboarding onStart={handleOnboardingStart} />;
+  }
 
   if (!plant) {
     return (
