@@ -1,6 +1,6 @@
 {
-  "name": "Plantagotchi",
-  "short_name": "Plantagotchi",
+  "name": "초록하루",
+  "short_name": "초록하루",
   "description": "매일 돌봐주는 나의 귀여운 가상 식물",
   "start_url": "/",
   "display": "standalone",

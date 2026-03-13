@@ -2,7 +2,7 @@ import { PlantState, PlantStage, PlantStats } from "@/types/plant";
 import { getTodayMissions } from "./missions";
 import { format } from "date-fns";
 
-const STORAGE_KEY = "plantagotchi_state";
+const STORAGE_KEY = "daily_green_state";
 
 const STAGE_ORDER: PlantStage[] = ['seed', 'sprout', 'young', 'flowering', 'mature', 'special'];
 const XP_REQUIRED: Record<PlantStage, number> = {

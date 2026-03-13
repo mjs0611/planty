@@ -62,7 +62,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="flex items-center justify-between px-5 pt-12 pb-2">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Plantagotchi 🌿</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">초록하루 🌿</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">🔥 {plant.streak}일 연속 케어</p>
         </div>
         <div className="flex items-center gap-2">

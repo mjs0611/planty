@@ -1,9 +1,9 @@
 import { defineConfig } from "@apps-in-toss/web-framework/config";
 
 export default defineConfig({
-  appName: "plantagotchi",
+  appName: "daily-green",
   brand: {
-    displayName: "Plantagotchi",
+    displayName: "초록하루",
     primaryColor: "#00C473",
     icon: "https://placeholder.example.com/icon-512.png",
   },
