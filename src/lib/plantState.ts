@@ -1,6 +1,7 @@
-import { PlantState, PlantStage, PlantStats, MissionResult, TimeSlotMissions } from "@/types/plant";
+import { PlantState, PlantStage, PlantStats, MissionResult, PlantType, GrowthEvent } from "@/types/plant";
 import { getTodayMissions, getMissionById, parseSlotId } from "./missions";
 import { getCurrentWeather, getCurrentTimeSlot, weatherBonusMultiplier } from "./weather";
+import { getCurrentSeason, seasonXpMultiplier, GROWTH_EVENTS, PLANT_TYPE_ORDER, getCurrentWeekStr } from "./season";
 import { format, isYesterday, parseISO, differenceInCalendarDays } from "date-fns";
 
 const STORAGE_KEY = "daily_green_state";
@@ -23,6 +24,8 @@ export const STAGE_INFO: Record<PlantStage, { image: string; name: string; descr
   special: { image: '/plants/stage_8_golden.png',  name: '황금 식물', description: '전설의 황금 식물이 되었어요!' },
 };
 
+const MAX_SHIELDS = 2;
+
 function applyXp(state: PlantState, xp: number): PlantState {
   let { stage, xpRequired } = state;
   let finalXp = state.xp + xp;
@@ -35,20 +38,37 @@ function applyXp(state: PlantState, xp: number): PlantState {
   return { ...state, xp: finalXp, xpRequired, stage };
 }
 
+function nextPlantType(current: PlantType): PlantType {
+  const idx = PLANT_TYPE_ORDER.indexOf(current);
+  return PLANT_TYPE_ORDER[(idx + 1) % PLANT_TYPE_ORDER.length];
+}
+
+function refreshShieldIfNewWeek(state: PlantState): PlantState {
+  const thisWeek = getCurrentWeekStr();
+  if (state.lastShieldRefillWeek === thisWeek) return state;
+  const newShields = Math.min(MAX_SHIELDS, (state.streakShields ?? 0) + 1);
+  return { ...state, streakShields: newShields, lastShieldRefillWeek: thisWeek };
+}
+
 export function getInitialState(): PlantState {
   const today = format(new Date(), 'yyyy-MM-dd');
   return {
     stage: 'seed',
+    plantType: 'green',
+    garden: [],
     stats: { water: 80, sunlight: 80, health: 80 },
     xp: 0,
     xpRequired: XP_REQUIRED['seed'],
     streak: 0,
+    maxStreak: 0,
     lastCareDate: null,
     lastCareTime: null,
     adLastWatched: null,
     lastLoginBonusDate: null,
     lastWateringTime: null,
     lastMoodInteractTime: null,
+    streakShields: 1, // Start with 1 shield
+    lastShieldRefillWeek: getCurrentWeekStr(),
     completedMissions: [],
     timeSlotMissions: getTodayMissions(today),
     todayMissionsDate: today,
@@ -64,21 +84,25 @@ export function loadState(): PlantState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return getInitialState();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const state: any = JSON.parse(raw);
+    let state: any = JSON.parse(raw);
 
-    // Migrate old fields
+    // Migrate missing fields
     if (!state.lastCareDate)         state.lastCareDate = null;
     if (!state.adLastWatched)        state.adLastWatched = null;
     if (!state.lastLoginBonusDate)   state.lastLoginBonusDate = null;
     if (!state.lastWateringTime)     state.lastWateringTime = null;
     if (!state.lastMoodInteractTime) state.lastMoodInteractTime = null;
+    if (!state.plantType)            state.plantType = 'green';
+    if (!state.garden)               state.garden = [];
+    if (state.streakShields === undefined) state.streakShields = 0;
+    if (!state.lastShieldRefillWeek) state.lastShieldRefillWeek = null;
+    if (!state.maxStreak)            state.maxStreak = state.streak ?? 0;
 
     const today = format(new Date(), 'yyyy-MM-dd');
 
     // Migrate old flat todayMissions → timeSlotMissions
     if (!state.timeSlotMissions) {
       state.timeSlotMissions = getTodayMissions(state.todayMissionsDate ?? today);
-      // Old completedMissions used plain IDs — reset to avoid slot mismatch
       state.completedMissions = [];
     }
 
@@ -90,18 +114,31 @@ export function loadState(): PlantState {
       state.totalDaysAlive = (state.totalDaysAlive ?? 0) + 1;
     }
 
-    // Streak & wilting/dead based on days since last care
+    // Weekly shield refill
+    state = refreshShieldIfNewWeek(state);
+
+    // Streak & wilting/dead
     if (state.lastCareDate && state.lastCareDate !== today) {
       const lastDate = parseISO(state.lastCareDate);
       const daysSince = differenceInCalendarDays(new Date(), lastDate);
+
       if (daysSince >= 3) {
+        // Can shield save from death? Only wilting → shield. Death needs 3+ days.
         state.streak = 0;
         state.isDead = true;
         state.isWilting = false;
       } else if (daysSince === 2) {
-        state.streak = 0;
-        state.isWilting = true;
-        state.isDead = false;
+        // Use shield to protect streak if available
+        if ((state.streakShields ?? 0) > 0) {
+          state.streakShields -= 1;
+          state.isWilting = false;
+          state.isDead = false;
+          // Streak preserved
+        } else {
+          state.streak = 0;
+          state.isWilting = true;
+          state.isDead = false;
+        }
       } else {
         state.isWilting = false;
         state.isDead = false;
@@ -146,6 +183,8 @@ export function completeMission(
     newLastCareDate = today;
   }
 
+  const newMaxStreak = Math.max(state.maxStreak ?? 0, newStreak);
+
   const newStats: PlantStats = {
     water:    Math.min(100, state.stats.water    + (statEffect.water    ?? 0)),
     sunlight: Math.min(100, state.stats.sunlight + (statEffect.sunlight ?? 0)),
@@ -158,10 +197,22 @@ export function completeMission(
   const wMult = weatherBonusMultiplier(weather, slot as 'morning' | 'afternoon' | 'evening', statEffect);
   const weatherBonus = wMult > 1;
 
+  // Season bonus
+  const season = getCurrentSeason();
+  const sMult = seasonXpMultiplier(season, statEffect);
+
   // Lucky bonus (20%)
   const luckyBonus = Math.random() < 0.2;
-  const multiplier = wMult * (luckyBonus ? 2 : 1);
+  const multiplier = wMult * sMult * (luckyBonus ? 2 : 1);
   const xpGained = Math.round(xpReward * multiplier);
+
+  // Growth event (10% chance)
+  let growthEvent: GrowthEvent | undefined;
+  let eventXp = 0;
+  if (Math.random() < 0.1) {
+    growthEvent = GROWTH_EVENTS[Math.floor(Math.random() * GROWTH_EVENTS.length)];
+    eventXp = growthEvent.xpBonus;
+  }
 
   let next: PlantState = {
     ...state,
@@ -169,12 +220,13 @@ export function completeMission(
     completedMissions: [...state.completedMissions, slotId],
     lastCareDate: newLastCareDate,
     streak: newStreak,
+    maxStreak: newMaxStreak,
     isWilting: false,
     isDead: false,
   };
-  next = applyXp(next, xpGained);
+  next = applyXp(next, xpGained + eventXp);
 
-  return { state: next, luckyBonus, weatherBonus, xpGained };
+  return { state: next, luckyBonus, weatherBonus, xpGained, growthEvent };
 }
 
 const AD_XP_REWARD = 50;
@@ -195,15 +247,13 @@ export function applyMiniWatering(state: PlantState): { state: PlantState; xpGai
 
 export function isMiniWateringAvailable(state: PlantState): boolean {
   if (!state.lastWateringTime) return true;
-  const ms = Date.now() - new Date(state.lastWateringTime).getTime();
-  return ms >= 3 * 60 * 60 * 1000;
+  return Date.now() - new Date(state.lastWateringTime).getTime() >= 3 * 60 * 60 * 1000;
 }
 
 export function applyMoodInteract(state: PlantState): { state: PlantState; xpGained: number } | null {
   if (state.isDead) return null;
   if (state.lastMoodInteractTime) {
-    const ms = Date.now() - new Date(state.lastMoodInteractTime).getTime();
-    if (ms < 2 * 60 * 60 * 1000) return null;
+    if (Date.now() - new Date(state.lastMoodInteractTime).getTime() < 2 * 60 * 60 * 1000) return null;
   }
   let next = applyXp(state, 3);
   next = { ...next, lastMoodInteractTime: new Date().toISOString() };
@@ -217,9 +267,7 @@ function loginBonusXp(streak: number): number {
   return 10;
 }
 
-export function claimLoginBonus(
-  state: PlantState
-): { state: PlantState; bonusXp: number } | null {
+export function claimLoginBonus(state: PlantState): { state: PlantState; bonusXp: number } | null {
   const today = format(new Date(), 'yyyy-MM-dd');
   if (state.lastLoginBonusDate === today || state.isDead) return null;
   const bonusXp = loginBonusXp(state.streak);
@@ -228,17 +276,42 @@ export function claimLoginBonus(
   return { state: next, bonusXp };
 }
 
+export function graduatePlant(state: PlantState): PlantState {
+  if (state.stage !== 'special') return state;
+  const collected = {
+    type: state.plantType,
+    completedAt: new Date().toISOString(),
+    totalDaysAlive: state.totalDaysAlive,
+    maxStreak: state.maxStreak,
+  };
+  const newType = nextPlantType(state.plantType);
+  const today = format(new Date(), 'yyyy-MM-dd');
+  return {
+    ...getInitialState(),
+    plantType: newType,
+    garden: [...state.garden, collected],
+    streak: state.streak,
+    maxStreak: state.maxStreak,
+    lastCareDate: state.lastCareDate,
+    lastLoginBonusDate: state.lastLoginBonusDate,
+    streakShields: state.streakShields,
+    lastShieldRefillWeek: state.lastShieldRefillWeek,
+    timeSlotMissions: getTodayMissions(today),
+    todayMissionsDate: today,
+    totalDaysAlive: state.totalDaysAlive,
+  };
+}
+
 export function resetPlant(): PlantState {
   return getInitialState();
 }
 
 export function isAdAvailable(state: PlantState): boolean {
   if (!state.adLastWatched) return true;
-  const ms = Date.now() - new Date(state.adLastWatched).getTime();
-  return ms >= 60 * 60 * 1000;
+  return Date.now() - new Date(state.adLastWatched).getTime() >= 60 * 60 * 1000;
 }
 
-export function getAllMissionIds(tsm: TimeSlotMissions): string[] {
+export function getAllMissionIds(tsm: { morning: string[]; afternoon: string[]; evening: string[] }): string[] {
   return [
     ...tsm.morning.map(id => `morning_${id}`),
     ...tsm.afternoon.map(id => `afternoon_${id}`),

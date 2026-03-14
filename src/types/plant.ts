@@ -1,11 +1,13 @@
 export type PlantStage = 'seed' | 'sprout' | 'young' | 'bud' | 'flower' | 'fruit' | 'bloom' | 'special';
 export type TimeSlot = 'morning' | 'afternoon' | 'evening';
 export type Weather = 'sunny' | 'cloudy' | 'rainy' | 'windy' | 'moonlight';
+export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
+export type PlantType = 'green' | 'cactus' | 'cherry' | 'sunflower' | 'bamboo' | 'rose';
 
 export interface PlantStats {
-  water: number;    // 0-100
-  sunlight: number; // 0-100
-  health: number;   // 0-100
+  water: number;
+  sunlight: number;
+  health: number;
 }
 
 export interface Mission {
@@ -22,19 +24,31 @@ export interface TimeSlotMissions {
   evening: string[];
 }
 
+export interface CollectedPlant {
+  type: PlantType;
+  completedAt: string; // ISO
+  totalDaysAlive: number;
+  maxStreak: number;
+}
+
 export interface PlantState {
   stage: PlantStage;
+  plantType: PlantType;
+  garden: CollectedPlant[];
   stats: PlantStats;
   xp: number;
   xpRequired: number;
   streak: number;
-  lastCareDate: string | null;          // YYYY-MM-DD
-  lastCareTime: string | null;          // kept for migration compat
-  adLastWatched: string | null;         // ISO string
-  lastLoginBonusDate: string | null;    // YYYY-MM-DD
-  lastWateringTime: string | null;      // ISO string (mini watering cooldown)
-  lastMoodInteractTime: string | null;  // ISO string (mood tap cooldown)
-  completedMissions: string[];          // slotId format: 'morning_water'
+  maxStreak: number;
+  lastCareDate: string | null;
+  lastCareTime: string | null;
+  adLastWatched: string | null;
+  lastLoginBonusDate: string | null;
+  lastWateringTime: string | null;
+  lastMoodInteractTime: string | null;
+  streakShields: number;
+  lastShieldRefillWeek: string | null;
+  completedMissions: string[];
   timeSlotMissions: TimeSlotMissions;
   todayMissionsDate: string;
   isWilting: boolean;
@@ -42,9 +56,16 @@ export interface PlantState {
   totalDaysAlive: number;
 }
 
+export interface GrowthEvent {
+  emoji: string;
+  message: string;
+  xpBonus: number;
+}
+
 export interface MissionResult {
   state: PlantState;
   luckyBonus: boolean;
   weatherBonus: boolean;
   xpGained: number;
+  growthEvent?: GrowthEvent;
 }
