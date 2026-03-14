@@ -2,17 +2,23 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Top, Button, Toast } from "@toss/tds-mobile";
 import { PlantState } from "@/types/plant";
-import { loadState, saveState, completeMission, applyAdBoost, claimLoginBonus, resetPlant, STAGE_INFO, isAdAvailable } from "@/lib/plantState";
-import { getMissionById } from "@/lib/missions";
+import {
+  loadState, saveState, completeMission, applyAdBoost, applyMiniWatering,
+  applyMoodInteract, claimLoginBonus, resetPlant, STAGE_INFO, isAdAvailable, getAllMissionIds,
+} from "@/lib/plantState";
+import { getMissionById, parseSlotId } from "@/lib/missions";
 import { haptic, logEvent } from "@/lib/bridge";
 import PlantDisplay from "@/components/PlantDisplay";
 import StatBar from "@/components/StatBar";
-import MissionCard from "@/components/MissionCard";
 import AdButton from "@/components/AdButton";
 import ShareSheet from "@/components/ShareSheet";
 import BannerAd from "@/components/BannerAd";
 import Splash from "@/components/Splash";
 import Onboarding from "@/components/Onboarding";
+import WeatherBanner from "@/components/WeatherBanner";
+import PlantMood from "@/components/PlantMood";
+import MiniWatering from "@/components/MiniWatering";
+import TimeSlotMissions from "@/components/TimeSlotMissions";
 import { useTheme } from "@/lib/theme";
 
 const ONBOARDED_KEY = "daily_green_onboarded";
@@ -21,11 +27,11 @@ export default function HomePage() {
   const [plant, setPlant] = useState<PlantState | null>(null);
   const [justLeveledUp, setJustLeveledUp] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [toast, setToast] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+  const [toast, setToast] = useState<{ open: boolean; message: string }>({ open: false, message: "" });
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { theme, toggle } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
-  const [onboarded, setOnboarded] = useState(true); // default true to avoid flicker
+  const [onboarded, setOnboarded] = useState(true);
 
   const openToast = useCallback((message: string) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -33,23 +39,25 @@ export default function HomePage() {
     toastTimerRef.current = setTimeout(() => setToast(prev => ({ ...prev, open: false })), 2500);
   }, []);
 
-  // 앱 진입 시 상태 로드 + analytics + 온보딩 확인 + 일일 접속 보너스
+  const triggerLevelUp = useCallback((newStage: PlantState["stage"]) => {
+    setJustLeveledUp(true);
+    haptic("confetti");
+    openToast(`🎊 ${STAGE_INFO[newStage].name}으로 레벨 업!`);
+    setTimeout(() => setJustLeveledUp(false), 2500);
+  }, [openToast]);
+
+  // 앱 진입: 상태 로드 + 일일 접속 보너스
   useEffect(() => {
     const isOnboarded = localStorage.getItem(ONBOARDED_KEY) === "true";
     setOnboarded(isOnboarded);
     const state = loadState();
-
-    // 일일 접속 보너스
     const bonusResult = claimLoginBonus(state);
     if (bonusResult) {
       setPlant(bonusResult.state);
-      setTimeout(() => {
-        openToast(`🎁 오늘의 접속 보너스 +${bonusResult.bonusXp} XP`);
-      }, 2000); // 스플래시 이후 표시
+      setTimeout(() => openToast(`🎁 오늘의 접속 보너스 +${bonusResult.bonusXp} XP`), 2000);
     } else {
       setPlant(state);
     }
-
     logEvent("screen_view", { screen: "home", stage: state.stage, streak: state.streak });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -59,80 +67,87 @@ export default function HomePage() {
     setOnboarded(true);
   };
 
-  // 상태 변경 시 저장
   useEffect(() => {
     if (plant) saveState(plant);
   }, [plant]);
 
-  // 뒤로가기 이벤트 (토스 앱)
+  // 뒤로가기 (토스 앱)
   useEffect(() => {
     let cleanup: (() => void) | undefined;
     (async () => {
       try {
         const { graniteEvent } = await import("@apps-in-toss/web-framework");
         const sub = graniteEvent.addEventListener("backEvent", {
-          onEvent: () => {
-            // 공유 시트가 열려있으면 닫기
-            setShowShare(prev => {
-              if (prev) return false;
-              return prev; // 닫힌 상태면 앱 기본 동작(뒤로가기)
-            });
-          },
+          onEvent: () => setShowShare(prev => (prev ? false : prev)),
         });
         cleanup = sub;
-      } catch {
-        // 앱 외부
-      }
+      } catch { /* 앱 외부 */ }
     })();
     return () => cleanup?.();
   }, []);
 
-  const handleMissionComplete = useCallback((missionId: string) => {
+  const handleMissionComplete = useCallback((slotId: string) => {
     if (!plant) return;
+    const { missionId } = parseSlotId(slotId);
     const mission = getMissionById(missionId);
     if (!mission) return;
+
     const prevStage = plant.stage;
-    const { state: newState, luckyBonus, xpGained } = completeMission(plant, missionId, mission.statEffect, mission.xpReward);
+    const { state: newState, luckyBonus, weatherBonus, xpGained } =
+      completeMission(plant, slotId, mission.statEffect, mission.xpReward);
 
     if (newState.stage !== prevStage) {
-      setJustLeveledUp(true);
-      haptic("confetti");
-      openToast(`🎊 ${STAGE_INFO[newState.stage].name}으로 레벨 업!`);
+      triggerLevelUp(newState.stage);
       logEvent("level_up", { from: prevStage, to: newState.stage, streak: newState.streak });
-      setTimeout(() => setJustLeveledUp(false), 2500);
+    } else if (luckyBonus && weatherBonus) {
+      haptic("confetti");
+      openToast(`🍀⛅ 행운 + 날씨 보너스! ${mission.emoji} +${xpGained} XP`);
     } else if (luckyBonus) {
       haptic("confetti");
       openToast(`🍀 행운! ${mission.emoji} ${mission.label} 2배 XP +${xpGained}`);
+    } else if (weatherBonus) {
+      haptic("success");
+      openToast(`⛅ 날씨 보너스! ${mission.emoji} +${xpGained} XP`);
     } else {
       haptic("success");
       openToast(`${mission.emoji} ${mission.label} 완료! +${xpGained} XP`);
     }
 
-    logEvent("mission_complete", {
-      mission_id: missionId,
-      mission_label: mission.label,
-      xp_gained: xpGained,
-      lucky_bonus: luckyBonus,
-      stage: newState.stage,
-    });
-
+    logEvent("mission_complete", { mission_id: missionId, xp_gained: xpGained, lucky_bonus: luckyBonus, weather_bonus: weatherBonus });
     setPlant(newState);
-  }, [plant, openToast]);
+  }, [plant, openToast, triggerLevelUp]);
 
   const handleAdComplete = useCallback(() => {
     if (!plant) return;
     const { state: newState, xpGained } = applyAdBoost(plant);
     const leveledUp = newState.stage !== plant.stage;
     setPlant(newState);
-    haptic(leveledUp ? "confetti" : "success");
     if (leveledUp) {
-      setJustLeveledUp(true);
-      openToast(`🎊 ${STAGE_INFO[newState.stage].name}으로 레벨 업!`);
-      setTimeout(() => setJustLeveledUp(false), 2500);
+      triggerLevelUp(newState.stage);
     } else {
+      haptic("success");
       openToast(`📺 광고 보상! 성장 XP +${xpGained}`);
     }
     logEvent("ad_rewarded", { stage: plant.stage, xp_gained: xpGained });
+  }, [plant, openToast, triggerLevelUp]);
+
+  const handleMiniWater = useCallback(() => {
+    if (!plant) return;
+    const result = applyMiniWatering(plant);
+    if (!result) return;
+    haptic("success");
+    openToast("💧 물을 줬어요! +5 XP");
+    logEvent("mini_watering", { stage: plant.stage });
+    setPlant(result.state);
+  }, [plant, openToast]);
+
+  const handleMoodInteract = useCallback(() => {
+    if (!plant) return;
+    const result = applyMoodInteract(plant);
+    if (!result) return;
+    haptic("success");
+    openToast("💚 말을 걸었어요! +3 XP");
+    setPlant(result.state);
   }, [plant, openToast]);
 
   const handleReset = useCallback(() => {
@@ -141,16 +156,9 @@ export default function HomePage() {
     setPlant(resetPlant());
   }, [plant]);
 
-  // Splash (always shown briefly on load)
-  if (showSplash) {
-    return <Splash onDone={() => setShowSplash(false)} />;
-  }
-
-  // Onboarding (first launch only)
-  if (!onboarded) {
-    return <Onboarding onStart={handleOnboardingStart} />;
-  }
-
+  // ── Render guards ──────────────────────────────────────────
+  if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
+  if (!onboarded)  return <Onboarding onStart={handleOnboardingStart} />;
   if (!plant) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -159,22 +167,18 @@ export default function HomePage() {
     );
   }
 
-  const todayMissions = plant.todayMissions
-    .map(id => getMissionById(id))
-    .filter(Boolean) as NonNullable<ReturnType<typeof getMissionById>>[];
-
-  const allMissionsCompleted = plant.todayMissions.every(id => plant.completedMissions.includes(id));
+  const allMissionIds = getAllMissionIds(plant.timeSlotMissions);
+  const totalCompleted = allMissionIds.filter(id => plant.completedMissions.includes(id)).length;
+  const total = allMissionIds.length;
   const adAvailable = isAdAvailable(plant);
 
-  const streakBadge = plant.streak >= 30
-    ? '🏆 월간 마스터'
-    : plant.streak >= 7
-    ? '⭐ 주간 달성'
-    : null;
+  const streakBadge =
+    plant.streak >= 30 ? "🏆 월간 마스터" :
+    plant.streak >= 7  ? "⭐ 주간 달성"    : null;
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] pb-8">
-      {/* TDS Top Header */}
+      {/* Header */}
       <Top
         title={
           <div className="flex items-center gap-1.5">
@@ -198,11 +202,9 @@ export default function HomePage() {
             <Top.RightButton
               onClick={() => { setShowShare(true); logEvent("share_open", { stage: plant.stage }); }}
               aria-label="공유하기"
-            >
-              🔗
-            </Top.RightButton>
-            <Top.RightButton onClick={toggle} aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}>
-              {theme === 'dark' ? '☀️' : '🌙'}
+            >🔗</Top.RightButton>
+            <Top.RightButton onClick={toggle} aria-label={theme === "dark" ? "라이트 모드" : "다크 모드"}>
+              {theme === "dark" ? "☀️" : "🌙"}
             </Top.RightButton>
           </div>
         }
@@ -218,7 +220,10 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Plant Display Card */}
+      {/* Weather banner */}
+      <WeatherBanner />
+
+      {/* Plant Display */}
       <div className="mx-4 mt-3 bg-gradient-to-b from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl relative overflow-hidden">
         <PlantDisplay
           stage={plant.stage}
@@ -228,6 +233,13 @@ export default function HomePage() {
           xpRequired={plant.xpRequired}
           justLeveledUp={justLeveledUp}
         />
+        <div className="pb-3">
+          <PlantMood
+            plant={plant}
+            completedToday={totalCompleted}
+            onInteract={handleMoodInteract}
+          />
+        </div>
         {plant.isDead && (
           <div className="px-4 pb-4">
             <Button display="full" color="dark" size="large" onClick={handleReset}>
@@ -254,54 +266,39 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Today's Missions */}
+      {/* Mini Watering */}
       {!plant.isDead && (
-        <div className="mx-4 mt-3 bg-white dark:bg-gray-800 rounded-3xl p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-gray-700 dark:text-gray-200">오늘의 미션</h2>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
-              {plant.completedMissions.filter(id => plant.todayMissions.includes(id)).length}/{plant.todayMissions.length} 완료
-            </span>
-          </div>
-          <div className="space-y-2">
-            {todayMissions.map(mission => (
-              <MissionCard
-                key={mission.id}
-                mission={mission}
-                isCompleted={plant.completedMissions.includes(mission.id)}
-                onComplete={handleMissionComplete}
-              />
-            ))}
-          </div>
-          {allMissionsCompleted && (
-            <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-2xl text-center">
-              <p className="text-sm font-semibold text-green-600 dark:text-green-400">🎉 오늘 미션 완료! 내일 또 만나요!</p>
-            </div>
-          )}
+        <div className="mx-4 mt-3">
+          <MiniWatering plant={plant} onWater={handleMiniWater} />
         </div>
       )}
 
-      {/* 배너 광고 */}
+      {/* Time-slotted Missions */}
+      {!plant.isDead && (
+        <TimeSlotMissions
+          timeSlotMissions={plant.timeSlotMissions}
+          completedMissions={plant.completedMissions}
+          onComplete={handleMissionComplete}
+          totalCompleted={totalCompleted}
+          total={total}
+        />
+      )}
+
+      {/* Ads */}
       {!plant.isDead && (
         <div className="mx-4 mt-3">
           <BannerAd />
         </div>
       )}
-
-      {/* 리워드 광고 */}
       {!plant.isDead && (
         <div className="mx-4 mt-2">
           <AdButton onAdComplete={handleAdComplete} adAvailable={adAvailable} />
         </div>
       )}
 
-      {/* TDS Toast */}
       <Toast position="bottom" open={toast.open} text={toast.message} />
 
-      {/* Share Sheet */}
-      {showShare && (
-        <ShareSheet plant={plant} onClose={() => setShowShare(false)} />
-      )}
+      {showShare && <ShareSheet plant={plant} onClose={() => setShowShare(false)} />}
     </div>
   );
 }

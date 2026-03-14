@@ -23,8 +23,13 @@ export default function ShareSheet({ plant, onClose }: Props) {
     setTimeout(() => setShared(false), 2000);
   };
 
-  const completedToday = plant.completedMissions.filter(id => plant.todayMissions.includes(id)).length;
-  const totalMissions = plant.todayMissions.length;
+  const allIds = [
+    ...plant.timeSlotMissions.morning.map(id => `morning_${id}`),
+    ...plant.timeSlotMissions.afternoon.map(id => `afternoon_${id}`),
+    ...plant.timeSlotMissions.evening.map(id => `evening_${id}`),
+  ];
+  const completedToday = allIds.filter(id => plant.completedMissions.includes(id)).length;
+  const totalMissions = allIds.length;
 
   return (
     <BottomSheet open onDimmerClick={onClose}>

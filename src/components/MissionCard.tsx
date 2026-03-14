@@ -5,14 +5,14 @@ import { Mission } from "@/types/plant";
 interface Props {
   mission: Mission;
   isCompleted: boolean;
-  onComplete: (missionId: string) => void;
+  onComplete: () => void;
 }
 
 export default function MissionCard({ mission, isCompleted, onComplete }: Props) {
   return (
     <ListRow
       as="button"
-      onClick={() => !isCompleted && onComplete(mission.id)}
+      onClick={() => !isCompleted && onComplete()}
       disabled={isCompleted}
       border="none"
       verticalPadding="small"
