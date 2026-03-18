@@ -3,7 +3,6 @@ import { BottomSheet, Button } from "@toss/tds-mobile";
 import { CollectedPlant, PlantType } from "@/types/plant";
 import { PLANT_TYPE_INFO, PLANT_TYPE_ORDER } from "@/lib/season";
 import { STAGE_INFO } from "@/lib/plantState";
-import Image from "next/image";
 
 interface Props {
   garden: CollectedPlant[];
@@ -34,10 +33,11 @@ export default function GardenSheet({ garden, currentType, onClose }: Props) {
                 return (
                   <div key={i} className="bg-gradient-to-b from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-3 flex flex-col items-center gap-2">
                     <div
-                      className="relative w-20 h-20"
+                      className="w-20 h-20"
                       style={{ filter: `hue-rotate(${info.hueRotate}deg)` }}
                     >
-                      <Image src={stageImg} alt={info.name} fill style={{ objectFit: 'contain' }} />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={stageImg} alt={info.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     </div>
                     <div className="text-center">
                       <p className="text-xs font-bold text-gray-800 dark:text-white">{info.emoji} {info.name}</p>

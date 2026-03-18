@@ -2,7 +2,6 @@
 import { CollectedPlant, PlantType } from "@/types/plant";
 import { PLANT_TYPE_INFO, PLANT_TYPE_ORDER } from "@/lib/season";
 import { STAGE_INFO } from "@/lib/plantState";
-import Image from "next/image";
 
 interface Props {
   garden: CollectedPlant[];
@@ -35,10 +34,11 @@ export default function GardenView({ garden, currentType }: Props) {
             return (
               <div key={i} className="glass-panel rounded-2xl p-4 flex flex-col items-center gap-2">
                 <div
-                  className="relative w-24 h-24"
+                  className="w-24 h-24"
                   style={{ filter: `hue-rotate(${info.hueRotate}deg)` }}
                 >
-                  <Image src={stageImg} alt={info.name} fill style={{ objectFit: 'contain' }} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={stageImg} alt={info.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
                 <div className="text-center">
                   <p className="text-xs font-bold text-gray-800 dark:text-white">{info.emoji} {info.name}</p>

@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import { Button } from "@toss/tds-mobile";
 
 interface Props {
@@ -17,13 +16,12 @@ export default function Onboarding({ onStart }: Props) {
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-950 flex flex-col">
       {/* Hero */}
       <div className="flex flex-col items-center pt-16 pb-8 px-6">
-        <div className="relative w-44 h-44 mb-6">
-          <Image
+        <div className="w-44 h-44 mb-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src="/plants/stage_1_seed.png"
             alt="씨앗"
-            fill
-            style={{ objectFit: "contain" }}
-            priority
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
         </div>
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white text-center leading-tight">

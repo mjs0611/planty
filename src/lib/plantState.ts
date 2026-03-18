@@ -97,6 +97,7 @@ export function loadState(): PlantState {
     if (state.streakShields === undefined) state.streakShields = 0;
     if (!state.lastShieldRefillWeek) state.lastShieldRefillWeek = null;
     if (!state.maxStreak) state.maxStreak = state.streak ?? 0;
+    if (state.lastMilestoneStreak === undefined) state.lastMilestoneStreak = 0;
 
     const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -308,6 +309,44 @@ export function graduatePlant(state: PlantState): PlantState {
 
 export function resetPlant(): PlantState {
   return getInitialState();
+}
+
+export const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100];
+
+export function checkStreakMilestone(state: PlantState): { milestone: number; bonusXp: number } | null {
+  const last = state.lastMilestoneStreak ?? 0;
+  const hit = STREAK_MILESTONES.filter(m => state.streak >= m && m > last).pop();
+  if (!hit) return null;
+  const bonusXp = hit >= 30 ? 50 : hit >= 14 ? 30 : hit >= 7 ? 20 : 10;
+  return { milestone: hit, bonusXp };
+}
+
+export function applyStreakMilestone(state: PlantState, bonusXp: number): PlantState {
+  let next = applyXp(state, bonusXp);
+  next = { ...next, lastMilestoneStreak: state.streak };
+  return next;
+}
+
+export function applyCreatureReward(
+  state: PlantState,
+  xpReward: number,
+  statEffect?: Partial<PlantStats>
+): PlantState {
+  const newStats: PlantStats = statEffect ? {
+    water: Math.min(100, state.stats.water + (statEffect.water ?? 0)),
+    sunlight: Math.min(100, state.stats.sunlight + (statEffect.sunlight ?? 0)),
+    health: Math.min(100, state.stats.health + (statEffect.health ?? 0)),
+  } : state.stats;
+  return applyXp({ ...state, stats: newStats }, xpReward);
+}
+
+export function applyCreaturePenalty(state: PlantState, statEffect: Partial<PlantStats>): PlantState {
+  const newStats: PlantStats = {
+    water: Math.max(0, state.stats.water + (statEffect.water ?? 0)),
+    sunlight: Math.max(0, state.stats.sunlight + (statEffect.sunlight ?? 0)),
+    health: Math.max(0, state.stats.health + (statEffect.health ?? 0)),
+  };
+  return { ...state, stats: newStats };
 }
 
 export function isAdAvailable(state: PlantState): boolean {

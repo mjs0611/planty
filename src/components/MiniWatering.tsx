@@ -33,9 +33,9 @@ export default function MiniWatering({ plant, onWater }: Props) {
   }, [plant.lastWateringTime, available]);
 
   return (
-    <div className="flex items-center justify-between glass-panel rounded-3xl px-5 py-4 shadow-sm transition-all duration-300 hover:shadow-md">
+    <div className="flex items-center justify-between glass-panel rounded-2xl px-5 py-4">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-white/50 dark:bg-black/20 rounded-xl flex justify-center items-center shadow-inner">
+        <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex justify-center items-center">
           <span className="text-xl">💧</span>
         </div>
         <div>

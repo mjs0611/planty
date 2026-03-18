@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:ait": "bash scripts/build-ait.sh",
+    "bundle": "granite build",
     "start": "next start",
     "lint": "eslint"
   },

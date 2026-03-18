@@ -35,6 +35,8 @@ export interface CollectedPlant {
 export interface PlantState {
   stage: PlantStage;
   plantType: PlantType;
+  name?: string;
+  lastMilestoneStreak?: number;
   garden: CollectedPlant[];
   stats: PlantStats;
   xp: number;

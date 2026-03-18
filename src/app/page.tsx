@@ -6,6 +6,8 @@ import {
   loadState, saveState, completeMission, applyAdBoost, applyMiniWatering,
   applyMoodInteract, claimLoginBonus, graduatePlant, resetPlant,
   STAGE_INFO, isAdAvailable, getAllMissionIds,
+  checkStreakMilestone, applyStreakMilestone,
+  applyCreatureReward, applyCreaturePenalty,
 } from "@/lib/plantState";
 import { getMissionById, parseSlotId } from "@/lib/missions";
 import { haptic, logEvent } from "@/lib/bridge";
@@ -23,7 +25,16 @@ import MiniWatering from "@/components/MiniWatering";
 import TimeSlotMissions from "@/components/TimeSlotMissions";
 import GrowthEventPopup from "@/components/GrowthEventPopup";
 import GardenView from "@/components/GardenView";
+import FloatingCreature, { Creature } from "@/components/FloatingCreature";
+import PestAdModal from "@/components/PestAdModal";
 import { useTheme } from "@/lib/theme";
+
+const CREATURES: Omit<Creature, 'id' | 'x'>[] = [
+  { emoji: '🦋', label: '나비', isPest: false, xpReward: 5, duration: 12000 },
+  { emoji: '🐞', label: '무당벌레', isPest: false, xpReward: 3, statEffect: { health: 5 }, duration: 12000 },
+  { emoji: '🐝', label: '꿀벌', isPest: false, xpReward: 3, statEffect: { sunlight: 5 }, duration: 10000 },
+  { emoji: '🐛', label: '해충', isPest: true, xpReward: 0, penalty: { health: -8 }, duration: 25000 },
+];
 
 const ONBOARDED_KEY = "planty_onboarded";
 
@@ -38,6 +49,11 @@ export default function HomePage() {
   const { theme, toggle } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   const [onboarded, setOnboarded] = useState(true);
+  const [creature, setCreature] = useState<Creature | null>(null);
+  const [showPestModal, setShowPestModal] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [milestone, setMilestone] = useState<{ streak: number; bonusXp: number } | null>(null);
 
   const season = getCurrentSeason();
   const seasonInfo = SEASON_INFO[season];
@@ -60,11 +76,18 @@ export default function HomePage() {
     setOnboarded(isOnboarded);
     const state = loadState();
     const bonusResult = claimLoginBonus(state);
+    let finalState = bonusResult ? bonusResult.state : state;
+
+    // 마일스톤 체크
+    const ms = checkStreakMilestone(finalState);
+    if (ms) {
+      finalState = applyStreakMilestone(finalState, ms.bonusXp);
+      setTimeout(() => setMilestone({ streak: ms.milestone, bonusXp: ms.bonusXp }), 2500);
+    }
+
+    setPlant(finalState);
     if (bonusResult) {
-      setPlant(bonusResult.state);
       setTimeout(() => openToast(`🎁 오늘의 접속 보너스 +${bonusResult.bonusXp} XP`), 2000);
-    } else {
-      setPlant(state);
     }
     logEvent("screen_view", { screen: "home", stage: state.stage, streak: state.streak });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,8 +148,16 @@ export default function HomePage() {
       setTimeout(() => setGrowthEvent(evt), 600);
     }
 
+    // 마일스톤 체크 (미션 완료 후 streak 올랐을 때)
+    const ms = checkStreakMilestone(newState);
+    let finalState = newState;
+    if (ms) {
+      finalState = applyStreakMilestone(newState, ms.bonusXp);
+      setTimeout(() => setMilestone({ streak: ms.milestone, bonusXp: ms.bonusXp }), 800);
+    }
+
     logEvent("mission_complete", { mission_id: missionId, xp_gained: xpGained, lucky_bonus: luckyBonus });
-    setPlant(newState);
+    setPlant(finalState);
   }, [plant, openToast, triggerLevelUp]);
 
   const handleAdComplete = useCallback(() => {
@@ -173,6 +204,47 @@ export default function HomePage() {
     setPlant(resetPlant());
   }, [plant]);
 
+  const handleSaveName = useCallback(() => {
+    if (!plant) return;
+    const trimmed = nameInput.trim().slice(0, 12);
+    setPlant({ ...plant, name: trimmed || undefined });
+    setEditingName(false);
+  }, [plant, nameInput]);
+
+  const handleCreatureResult = useCallback((caught: boolean, skipPenalty = false) => {
+    if (!plant || !creature) { setCreature(null); setShowPestModal(false); return; }
+    if (caught) {
+      const newState = applyCreatureReward(plant, creature.xpReward, creature.statEffect);
+      const leveledUp = newState.stage !== plant.stage;
+      setPlant(newState);
+      if (leveledUp) triggerLevelUp(newState.stage);
+      else {
+        haptic("success");
+        const desc = creature.statEffect?.health ? ' 💚+5' : creature.statEffect?.sunlight ? ' ☀️+5' : '';
+        openToast(`${creature.emoji} ${creature.label} 잡았어요!${desc} +${creature.xpReward} XP`);
+      }
+    } else if (!skipPenalty && creature.isPest && creature.penalty) {
+      const newState = applyCreaturePenalty(plant, creature.penalty);
+      setPlant(newState);
+      haptic("error");
+      openToast(`🐛 해충이 식물을 갉아먹었어요! 건강 -8`);
+    }
+    setCreature(null);
+    setShowPestModal(false);
+  }, [plant, creature, openToast, triggerLevelUp]);
+
+  // 랜덤 생물 스폰
+  useEffect(() => {
+    if (!plant || plant.isDead || activeTab !== 'home' || creature !== null) return;
+    const delay = (90 + Math.random() * 150) * 1000; // 1.5~4분
+    const timer = setTimeout(() => {
+      const roll = Math.random();
+      const picked = roll < 0.25 ? CREATURES[3] : CREATURES[Math.floor(Math.random() * 3)];
+      setCreature({ ...picked, id: Date.now().toString(), x: 15 + Math.random() * 55 });
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [plant?.isDead, activeTab, creature]);
+
   // ── Render guards ───────────────────────────────────────────
   if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
   if (!onboarded) return <Onboarding onStart={handleOnboardingStart} />;
@@ -201,6 +273,14 @@ export default function HomePage() {
           <div className="flex items-center gap-1">
             <span className="text-2xl font-bold whitespace-nowrap">플랜티</span>
             <span>🌿</span>
+            {plant.name && (
+              <button
+                onClick={() => { setNameInput(plant.name ?? ''); setEditingName(true); }}
+                className="text-xs text-emerald-600 dark:text-emerald-400 font-medium ml-1 truncate max-w-[80px]"
+              >
+                &quot;{plant.name}&quot;
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <span className="text-orange-500 font-semibold text-xs whitespace-nowrap">🔥 {plant.streak}일 연속</span>
@@ -248,7 +328,22 @@ export default function HomePage() {
       <WeatherBanner />
 
       {/* Plant */}
-      <div className="mx-4 mt-3 bg-gradient-to-b from-emerald-50/60 to-emerald-100/30 dark:from-emerald-900/40 dark:to-emerald-950/20 backdrop-blur-3xl rounded-3xl relative overflow-hidden shadow-sm border border-emerald-100 dark:border-emerald-800/30">
+      <div className="mx-4 mt-3 bg-gradient-to-b from-[#EAF5EE] to-white dark:from-emerald-900/30 dark:to-[#09100D] rounded-3xl relative overflow-hidden border border-emerald-100/80 dark:border-emerald-800/20 shadow-sm">
+        {creature && (
+          <FloatingCreature
+            creature={creature}
+            onTap={handleCreatureResult}
+            onPestTap={() => setShowPestModal(true)}
+          />
+        )}
+        {!plant.name && !plant.isDead && (
+          <button
+            onClick={() => { setNameInput(''); setEditingName(true); }}
+            className="absolute top-3 right-3 text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-900/50 px-2 py-1 rounded-full font-medium z-10"
+          >
+            ✏️ 이름 짓기
+          </button>
+        )}
         <PlantDisplay
           stage={plant.stage}
           plantType={plant.plantType}
@@ -278,9 +373,8 @@ export default function HomePage() {
 
       {/* Stats */}
       {!plant.isDead && (
-        <div className="mx-4 mt-3 glass-panel rounded-3xl p-5 space-y-4 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-200/20 dark:bg-emerald-500/10 rounded-full blur-3xl -z-10 -translate-y-1/2 translate-x-1/2"></div>
-          <h2 className="text-sm font-bold tracking-wide text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+        <div className="mx-4 mt-3 glass-panel rounded-2xl p-5 space-y-4">
+          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
             <span>✨</span> 식물 상태
           </h2>
           <div className="space-y-4 pt-1">
@@ -325,6 +419,61 @@ export default function HomePage() {
       <Toast position="bottom" open={toast.open} text={toast.message} />
       <GrowthEventPopup event={growthEvent} onDismiss={() => setGrowthEvent(null)} />
       {showShare && <ShareSheet plant={plant} onClose={() => setShowShare(false)} />}
+
+      {/* 해충 광고 모달 */}
+      {showPestModal && (
+        <PestAdModal
+          onCatch={() => handleCreatureResult(true)}
+          onClose={() => handleCreatureResult(false, true)}
+        />
+      )}
+
+      {/* 스트릭 마일스톤 팝업 */}
+      {milestone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setMilestone(null)}>
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 mx-6 text-center shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="text-6xl mb-3">
+              {milestone.streak >= 30 ? '🏆' : milestone.streak >= 14 ? '🌟' : milestone.streak >= 7 ? '⭐' : '🎉'}
+            </div>
+            <p className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+              {milestone.streak}일 연속 달성!
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              꾸준히 돌봐줘서 고마워요 💚
+            </p>
+            <p className="text-lg font-bold text-emerald-500">+{milestone.bonusXp} XP 보너스!</p>
+            <button
+              className="mt-5 w-full py-3 bg-emerald-500 text-white font-bold rounded-2xl"
+              onClick={() => setMilestone(null)}
+            >
+              계속 키우기 🌱
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 이름 편집 모달 */}
+      {editingName && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm" onClick={() => setEditingName(false)}>
+          <div className="w-full bg-white dark:bg-gray-900 rounded-t-3xl p-6 pb-8" onClick={e => e.stopPropagation()}>
+            <p className="text-lg font-bold text-gray-800 dark:text-white mb-1">내 식물 이름 짓기 🌿</p>
+            <p className="text-xs text-gray-400 mb-4">최대 12자</p>
+            <input
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              placeholder="예: 봄이, 초록이, 미미..."
+              maxLength={12}
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 text-base bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+            />
+            <div className="flex gap-2 mt-4">
+              <button className="flex-1 py-3 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold" onClick={() => setEditingName(false)}>취소</button>
+              <button className="flex-1 py-3 rounded-2xl bg-emerald-500 text-white font-bold" onClick={handleSaveName}>저장</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Tab Nav */}
       <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm bg-white/80 dark:bg-[#09100D]/90 backdrop-blur-xl border border-white/30 dark:border-emerald-500/20 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-40 px-2 py-1.5 capsule-nav">

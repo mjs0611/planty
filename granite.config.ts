@@ -12,9 +12,10 @@ export default defineConfig({
     port: 3000,
     commands: {
       dev: "npm run dev",
-      build: "npm run build",
+      build: "npm run build:ait",
     },
   },
+  outdir: "out",
   webViewProps: {
     type: "partner",
     bounces: true,

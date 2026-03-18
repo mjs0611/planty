@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import { Button, ProgressBar } from "@toss/tds-mobile";
 import { PlantStage, PlantType } from "@/types/plant";
 import { STAGE_INFO } from "@/lib/plantState";
@@ -63,12 +62,11 @@ export default function PlantDisplay({ stage, plantType, isWilting, isDead, xp, 
         {isDead ? (
           <div className="text-[96px] leading-none flex items-center justify-center w-full h-full">🪦</div>
         ) : (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={info.image}
             alt={info.name}
-            fill
-            style={{ objectFit: 'contain' }}
-            priority
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
         )}
       </div>
