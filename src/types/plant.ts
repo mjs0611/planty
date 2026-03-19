@@ -44,7 +44,6 @@ export interface PlantState {
   streak: number;
   maxStreak: number;
   lastCareDate: string | null;
-  lastCareTime: string | null;
   adLastWatched: string | null;
   lastLoginBonusDate: string | null;
   lastWateringTime: string | null;

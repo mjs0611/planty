@@ -1,17 +1,21 @@
 "use client";
-import { useEffect, useState, useCallback, useRef } from "react";
-import { Top, Button, Toast } from "@toss/tds-mobile";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { Button, Toast } from "@toss/tds-mobile";
 import { PlantState, GrowthEvent } from "@/types/plant";
 import {
   loadState, saveState, completeMission, applyAdBoost, applyMiniWatering,
   applyMoodInteract, claimLoginBonus, graduatePlant, resetPlant,
   STAGE_INFO, isAdAvailable, getAllMissionIds,
   checkStreakMilestone, applyStreakMilestone,
-  applyCreatureReward, applyCreaturePenalty,
+  applyCreatureReward, applyCreaturePenalty, applyComboBonus,
 } from "@/lib/plantState";
 import { getMissionById, parseSlotId } from "@/lib/missions";
 import { haptic, logEvent } from "@/lib/bridge";
 import { getCurrentSeason, SEASON_INFO, PLANT_TYPE_INFO } from "@/lib/season";
+import { ONBOARDED_KEY, COMBO_MILESTONES } from "@/lib/constants";
+import { useToast } from "@/hooks/useToast";
+import { useCreatureSpawner } from "@/hooks/useCreatureSpawner";
+import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import PlantDisplay from "@/components/PlantDisplay";
 import StatBar from "@/components/StatBar";
 import AdButton from "@/components/AdButton";
@@ -29,23 +33,12 @@ import FloatingCreature, { Creature } from "@/components/FloatingCreature";
 import PestAdModal from "@/components/PestAdModal";
 import { useTheme } from "@/lib/theme";
 
-const CREATURES: Omit<Creature, 'id' | 'x'>[] = [
-  { emoji: '🦋', label: '나비', isPest: false, xpReward: 5, duration: 12000 },
-  { emoji: '🐞', label: '무당벌레', isPest: false, xpReward: 3, statEffect: { health: 5 }, duration: 12000 },
-  { emoji: '🐝', label: '꿀벌', isPest: false, xpReward: 3, statEffect: { sunlight: 5 }, duration: 10000 },
-  { emoji: '🐛', label: '해충', isPest: true, xpReward: 0, penalty: { health: -8 }, duration: 25000 },
-];
-
-const ONBOARDED_KEY = "planty_onboarded";
-
 export default function HomePage() {
   const [plant, setPlant] = useState<PlantState | null>(null);
   const [justLeveledUp, setJustLeveledUp] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [activeTab, setActiveTab] = useState<'home' | 'garden'>('home');
-  const [toast, setToast] = useState<{ open: boolean; message: string }>({ open: false, message: "" });
   const [growthEvent, setGrowthEvent] = useState<GrowthEvent | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { theme, toggle } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   const [onboarded, setOnboarded] = useState(true);
@@ -54,15 +47,19 @@ export default function HomePage() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [milestone, setMilestone] = useState<{ streak: number; bonusXp: number } | null>(null);
+  const triggeredCombosRef = useRef<Set<number>>(new Set());
+
+  // 최신 값을 핸들러에서 참조하기 위한 refs (stale closure 방지)
+  const plantRef = useRef<PlantState | null>(null);
+  const creatureRef = useRef<Creature | null>(null);
+  useEffect(() => { plantRef.current = plant; }, [plant]);
+  useEffect(() => { creatureRef.current = creature; }, [creature]);
 
   const season = getCurrentSeason();
   const seasonInfo = SEASON_INFO[season];
 
-  const openToast = useCallback((message: string) => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToast({ open: true, message });
-    toastTimerRef.current = setTimeout(() => setToast(prev => ({ ...prev, open: false })), 2500);
-  }, []);
+  const { toast, openToast } = useToast();
+  useDebouncedSave(plant);
 
   const triggerLevelUp = useCallback((newStage: PlantState["stage"]) => {
     setJustLeveledUp(true);
@@ -74,7 +71,7 @@ export default function HomePage() {
   useEffect(() => {
     const isOnboarded = localStorage.getItem(ONBOARDED_KEY) === "true";
     setOnboarded(isOnboarded);
-    const state = loadState();
+    const { state, shieldConsumed } = loadState();
     const bonusResult = claimLoginBonus(state);
     let finalState = bonusResult ? bonusResult.state : state;
 
@@ -86,19 +83,23 @@ export default function HomePage() {
     }
 
     setPlant(finalState);
+    if (shieldConsumed) {
+      setTimeout(() => openToast(`🛡 스트릭 실드를 사용했어요! 연속 기록이 유지됐습니다`), 1000);
+    }
     if (bonusResult) {
-      setTimeout(() => openToast(`🎁 오늘의 접속 보너스 +${bonusResult.bonusXp} XP`), 2000);
+      setTimeout(() => openToast(`🎁 오늘의 접속 보너스 +${bonusResult.bonusXp} XP`), shieldConsumed ? 4000 : 2000);
     }
     logEvent("screen_view", { screen: "home", stage: state.stage, streak: state.streak });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleOnboardingStart = () => {
+  const handleOnboardingStart = useCallback((plantName?: string) => {
     localStorage.setItem(ONBOARDED_KEY, "true");
     setOnboarded(true);
-  };
-
-  useEffect(() => { if (plant) saveState(plant); }, [plant]);
+    if (plantName) {
+      setPlant(prev => prev ? { ...prev, name: plantName } : prev);
+    }
+  }, []);
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
@@ -118,6 +119,7 @@ export default function HomePage() {
   }, [activeTab]);
 
   const handleMissionComplete = useCallback((slotId: string) => {
+    const plant = plantRef.current;
     if (!plant) return;
     const { missionId } = parseSlotId(slotId);
     const mission = getMissionById(missionId);
@@ -144,11 +146,8 @@ export default function HomePage() {
       openToast(`${mission.emoji} ${mission.label} 완료! +${xpGained} XP`);
     }
 
-    if (evt) {
-      setTimeout(() => setGrowthEvent(evt), 600);
-    }
+    if (evt) setTimeout(() => setGrowthEvent(evt), 600);
 
-    // 마일스톤 체크 (미션 완료 후 streak 올랐을 때)
     const ms = checkStreakMilestone(newState);
     let finalState = newState;
     if (ms) {
@@ -158,9 +157,10 @@ export default function HomePage() {
 
     logEvent("mission_complete", { mission_id: missionId, xp_gained: xpGained, lucky_bonus: luckyBonus });
     setPlant(finalState);
-  }, [plant, openToast, triggerLevelUp]);
+  }, [openToast, triggerLevelUp]);
 
   const handleAdComplete = useCallback(() => {
+    const plant = plantRef.current;
     if (!plant) return;
     const { state: newState, xpGained } = applyAdBoost(plant);
     const leveledUp = newState.stage !== plant.stage;
@@ -168,50 +168,72 @@ export default function HomePage() {
     if (leveledUp) triggerLevelUp(newState.stage);
     else { haptic("success"); openToast(`📺 광고 보상! 성장 XP +${xpGained}`); }
     logEvent("ad_rewarded", { stage: plant.stage });
-  }, [plant, openToast, triggerLevelUp]);
+  }, [openToast, triggerLevelUp]);
 
   const handleMiniWater = useCallback(() => {
+    const plant = plantRef.current;
     if (!plant) return;
     const result = applyMiniWatering(plant);
     if (!result) return;
     haptic("success");
     openToast("💧 물을 줬어요! +5 XP");
     setPlant(result.state);
-  }, [plant, openToast]);
+  }, [openToast]);
 
   const handleMoodInteract = useCallback(() => {
+    const plant = plantRef.current;
     if (!plant) return;
     const result = applyMoodInteract(plant);
     if (!result) return;
     haptic("success");
     openToast("💚 말을 걸었어요! +3 XP");
     setPlant(result.state);
-  }, [plant, openToast]);
+  }, [openToast]);
 
   const handleGraduate = useCallback(() => {
+    const plant = plantRef.current;
     if (!plant) return;
     const newState = graduatePlant(plant);
     const typeInfo = PLANT_TYPE_INFO[newState.plantType];
     haptic("confetti");
     openToast(`🎓 졸업! 새 식물 "${typeInfo.name}" 시작!`);
     logEvent("plant_graduate", { from_type: plant.plantType, to_type: newState.plantType, garden_count: newState.garden.length });
+    triggeredCombosRef.current.clear();
     setPlant(newState);
-  }, [plant, openToast]);
+  }, [openToast]);
+
+  const handleComboTap = useCallback((combo: number) => {
+    const plant = plantRef.current;
+    if (!plant || plant.isDead) return;
+    const ms = COMBO_MILESTONES.find(m => m.combo === combo);
+    if (!ms || triggeredCombosRef.current.has(combo)) return;
+    triggeredCombosRef.current.add(combo);
+    haptic(ms.hapticType);
+    const newState = applyComboBonus(plant, ms.xp);
+    if (newState.stage !== plant.stage) triggerLevelUp(newState.stage);
+    else openToast(`${ms.message} +${ms.xp} XP`);
+    setPlant(newState);
+  }, [openToast, triggerLevelUp]);
 
   const handleReset = useCallback(() => {
+    const plant = plantRef.current;
     if (!plant?.isDead) return;
     logEvent("plant_reset", { prev_stage: plant.stage });
+    triggeredCombosRef.current.clear();
     setPlant(resetPlant());
-  }, [plant]);
+  }, []);
 
   const handleSaveName = useCallback(() => {
+    const plant = plantRef.current;
     if (!plant) return;
     const trimmed = nameInput.trim().slice(0, 12);
     setPlant({ ...plant, name: trimmed || undefined });
     setEditingName(false);
-  }, [plant, nameInput]);
+  }, [nameInput]);
 
   const handleCreatureResult = useCallback((caught: boolean, skipPenalty = false) => {
+    const plant = plantRef.current;
+    const creature = creatureRef.current;
     if (!plant || !creature) { setCreature(null); setShowPestModal(false); return; }
     if (caught) {
       const newState = applyCreatureReward(plant, creature.xpReward, creature.statEffect);
@@ -231,19 +253,15 @@ export default function HomePage() {
     }
     setCreature(null);
     setShowPestModal(false);
-  }, [plant, creature, openToast, triggerLevelUp]);
+  }, [openToast, triggerLevelUp]);
 
-  // 랜덤 생물 스폰
-  useEffect(() => {
-    if (!plant || plant.isDead || activeTab !== 'home' || creature !== null) return;
-    const delay = (90 + Math.random() * 150) * 1000; // 1.5~4분
-    const timer = setTimeout(() => {
-      const roll = Math.random();
-      const picked = roll < 0.25 ? CREATURES[3] : CREATURES[Math.floor(Math.random() * 3)];
-      setCreature({ ...picked, id: Date.now().toString(), x: 15 + Math.random() * 55 });
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [plant?.isDead, activeTab, creature]);
+  const handleCreatureSpawn = useCallback((c: Creature) => setCreature(c), []);
+  useCreatureSpawner({
+    isActive: activeTab === 'home' && !!plant,
+    isDead: plant?.isDead ?? false,
+    creature,
+    onSpawn: handleCreatureSpawn,
+  });
 
   // ── Render guards ───────────────────────────────────────────
   if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
@@ -256,14 +274,20 @@ export default function HomePage() {
     );
   }
 
-  const allMissionIds = getAllMissionIds(plant.timeSlotMissions);
-  const totalCompleted = allMissionIds.filter(id => plant.completedMissions.includes(id)).length;
-  const total = allMissionIds.length;
-  const adAvailable = isAdAvailable(plant);
+  const { totalCompleted, total } = useMemo(() => {
+    const allMissionIds = getAllMissionIds(plant.timeSlotMissions);
+    return {
+      totalCompleted: allMissionIds.filter(id => plant.completedMissions.includes(id)).length,
+      total: allMissionIds.length,
+    };
+  }, [plant.timeSlotMissions, plant.completedMissions]);
 
-  const streakBadge =
+  const adAvailable = useMemo(() => isAdAvailable(plant), [plant.adLastWatched]);
+
+  const streakBadge = useMemo(() =>
     plant.streak >= 30 ? "🏆 월간 마스터" :
-      plant.streak >= 7 ? "⭐ 주간 달성" : null;
+    plant.streak >= 7  ? "⭐ 주간 달성"   : null,
+  [plant.streak]);
 
   return (
     <div className="min-h-screen nature-page pb-28">
@@ -285,8 +309,11 @@ export default function HomePage() {
           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <span className="text-orange-500 font-semibold text-xs whitespace-nowrap">🔥 {plant.streak}일 연속</span>
             {plant.streakShields > 0 && (
-              <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                🛡×{plant.streakShields}
+              <span
+                title="스트릭 실드: 하루 빠져도 연속 기록을 지켜줘요"
+                className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full whitespace-nowrap cursor-help"
+              >
+                🛡 실드×{plant.streakShields}
               </span>
             )}
             {streakBadge && (
@@ -353,6 +380,7 @@ export default function HomePage() {
           xpRequired={plant.xpRequired}
           justLeveledUp={justLeveledUp}
           onGraduate={plant.stage === 'special' ? handleGraduate : undefined}
+          onComboTap={handleComboTap}
         />
         <div className="pb-3">
           <PlantMood plant={plant} completedToday={totalCompleted} onInteract={handleMoodInteract} />
