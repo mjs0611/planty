@@ -42,7 +42,7 @@ describe('getMissionById', () => {
   it('유효한 ID로 미션 반환', () => {
     const mission = getMissionById('water');
     expect(mission).toBeDefined();
-    expect(mission?.label).toBe('물 주기');
+    expect(mission?.label).toBe('물 듬뿍 주기');
   });
 
   it('존재하지 않는 ID는 undefined', () => {

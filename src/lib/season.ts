@@ -31,16 +31,20 @@ export function seasonXpMultiplier(
   return 1;
 }
 
-export const PLANT_TYPE_INFO: Record<PlantType, { name: string; emoji: string; hueRotate: number; desc: string }> = {
-  green:     { name: '초록 식물', emoji: '🌿', hueRotate: 0,   desc: '싱그러운 초록 식물' },
-  cactus:    { name: '선인장',    emoji: '🌵', hueRotate: 45,  desc: '강인하고 독특한 선인장' },
-  cherry:    { name: '벚꽃 나무', emoji: '🌸', hueRotate: 300, desc: '아름다운 벚꽃 나무' },
-  sunflower: { name: '해바라기',  emoji: '🌻', hueRotate: 30,  desc: '밝고 환한 해바라기' },
-  bamboo:    { name: '대나무',    emoji: '🎍', hueRotate: 90,  desc: '곧고 굳건한 대나무' },
-  rose:      { name: '장미',      emoji: '🌹', hueRotate: 330, desc: '우아하고 고귀한 장미' },
+export const PLANT_TYPE_INFO: Record<PlantType, { name: string; emoji: string; desc: string }> = {
+  green:     { name: '초록 식물', emoji: '🌿', desc: '싱그러운 초록 식물' },
+  flower:    { name: '꽃 식물',   emoji: '🌺', desc: '화사하게 피어나는 꽃 식물' },
+  cactus:    { name: '선인장',    emoji: '🌵', desc: '강인하고 독특한 선인장' },
+  sunflower: { name: '해바라기',  emoji: '🌻', desc: '태양을 사랑하는 밝은 해바라기' },
+  rose:      { name: '장미',      emoji: '🌹', desc: '치명적인 매력을 가진 붉은 장미' },
+  bamboo:    { name: '대나무',    emoji: '🎋', desc: '올곧게 자라는 푸른 대나무' },
+  mushroom:  { name: '버섯',      emoji: '🍄', desc: '습한 곳을 좋아하는 귀여운 버섯' },
+  succulent: { name: '다육이',    emoji: '🪴', desc: '작고 통통한 생명력 강한 다육이' },
+  clover:    { name: '클로버',    emoji: '🍀', desc: '행운을 가져다주는 네잎클로버' },
+  monstera:  { name: '몬스테라',  emoji: '🍃', desc: '멋진 구멍 잎을 가진 몬스테라' },
 };
 
-export const PLANT_TYPE_ORDER: PlantType[] = ['green', 'cactus', 'cherry', 'sunflower', 'bamboo', 'rose'];
+export const PLANT_TYPE_ORDER: PlantType[] = ['green', 'flower', 'cactus', 'sunflower', 'rose', 'bamboo', 'mushroom', 'succulent', 'clover', 'monstera'];
 
 export const GROWTH_EVENTS = [
   { emoji: '🦋', message: '나비가 찾아왔어요!',     xpBonus: 5 },
@@ -53,10 +57,14 @@ export const GROWTH_EVENTS = [
   { emoji: '🌙', message: '달빛을 받았어요!',       xpBonus: 5 },
 ];
 
-// ISO week string: "YYYY-WW"
+// ISO 8601 week string: "YYYY-WNN"
 export function getCurrentWeekStr(): string {
   const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  const week = Math.ceil(((now.getTime() - start.getTime()) / 86400000 + start.getDay() + 1) / 7);
-  return `${now.getFullYear()}-${String(week).padStart(2, '0')}`;
+  // ISO week: Mon=1 start, Jan 4th always in week 1
+  const tmp = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const dayOfWeek = tmp.getUTCDay() || 7; // 1(Mon)~7(Sun)
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayOfWeek);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${tmp.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }

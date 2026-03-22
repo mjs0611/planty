@@ -4,14 +4,16 @@ import { Button, Toast } from "@toss/tds-mobile";
 import { PlantState, GrowthEvent } from "@/types/plant";
 import {
   loadState, completeMission, applyAdBoost, applyMiniWatering,
-  applyMoodInteract, claimLoginBonus, graduatePlant, resetPlant,
+  claimLoginBonus, graduatePlant, resetPlant,
   STAGE_INFO, isAdAvailable, getAllMissionIds,
   checkStreakMilestone, applyStreakMilestone,
   applyCreatureReward, applyCreaturePenalty, applyComboBonus,
+  applyTapStatBoost,
 } from "@/lib/plantState";
 import { getMissionById, parseSlotId } from "@/lib/missions";
 import { haptic, logEvent } from "@/lib/bridge";
-import { PLANT_TYPE_INFO } from "@/lib/season";
+import { PLANT_TYPE_INFO, getCurrentSeason, SEASON_INFO } from "@/lib/season";
+import { getCurrentWeather, WEATHER_INFO } from "@/lib/weather";
 import { ONBOARDED_KEY, COMBO_MILESTONES } from "@/lib/constants";
 import { useToast } from "@/hooks/useToast";
 import { useCreatureSpawner } from "@/hooks/useCreatureSpawner";
@@ -111,12 +113,17 @@ const { toast, openToast } = useToast();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleOnboardingStart = useCallback((plantName?: string) => {
+  const handleOnboardingStart = useCallback((plantName?: string, plantType?: PlantState["plantType"]) => {
     localStorage.setItem(ONBOARDED_KEY, "true");
     setOnboarded(true);
-    if (plantName) {
-      setPlant(prev => prev ? { ...prev, name: plantName } : prev);
-    }
+    setPlant(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        ...(plantName ? { name: plantName } : {}),
+        ...(plantType ? { plantType } : {}),
+      };
+    });
   }, []);
 
   useEffect(() => {
@@ -145,23 +152,24 @@ const { toast, openToast } = useToast();
 
     const prevStage = plant.stage;
     const result = completeMission(plant, slotId, mission.statEffect, mission.xpReward);
-    const { state: newState, luckyBonus, weatherBonus, xpGained, growthEvent: evt } = result;
+    const { state: newState, luckyBonus, weatherBonus, shieldBonus, xpGained, growthEvent: evt } = result;
+    const shieldTag = shieldBonus ? " 🛡" : "";
 
     if (newState.stage !== prevStage) {
       triggerLevelUp(newState.stage);
       logEvent("level_up", { from: prevStage, to: newState.stage });
     } else if (luckyBonus && weatherBonus) {
       haptic("confetti");
-      openToast(`🍀⛅ 행운 + 날씨 보너스! +${xpGained} XP`);
+      openToast(`🍀⛅ 행운 + 날씨 보너스! +${xpGained} XP${shieldTag}`);
     } else if (luckyBonus) {
       haptic("confetti");
-      openToast(`🍀 행운! ${mission.emoji} 2배 XP +${xpGained}`);
+      openToast(`🍀 행운! ${mission.emoji} 2배 XP +${xpGained}${shieldTag}`);
     } else if (weatherBonus) {
       haptic("success");
-      openToast(`⛅ 날씨 보너스! ${mission.emoji} +${xpGained} XP`);
+      openToast(`⛅ 날씨 보너스! ${mission.emoji} +${xpGained} XP${shieldTag}`);
     } else {
       haptic("success");
-      openToast(`${mission.emoji} ${mission.label} 완료! +${xpGained} XP`);
+      openToast(`${mission.emoji} ${mission.label} 완료! +${xpGained} XP${shieldTag}`);
     }
 
     if (evt) setTimeout(() => setGrowthEvent(evt), 600);
@@ -194,19 +202,17 @@ const { toast, openToast } = useToast();
     const result = applyMiniWatering(plant);
     if (!result) return;
     haptic("success");
-    openToast("💧 물을 줬어요! +5 XP");
+    openToast("💧 물을 줬어요! +10 XP");
     setPlant(result.state);
   }, [openToast]);
 
-  const handleMoodInteract = useCallback(() => {
+  const handleTapStatBoost = useCallback(() => {
     const plant = plantRef.current;
     if (!plant) return;
-    const result = applyMoodInteract(plant);
-    if (!result) return;
-    haptic("success");
-    openToast("💚 말을 걸었어요! +3 XP");
-    setPlant(result.state);
-  }, [openToast]);
+    const { state: newState, gained } = applyTapStatBoost(plant);
+    if (!gained) return;
+    setPlant(newState);
+  }, []);
 
   const handleGraduate = useCallback(() => {
     const plant = plantRef.current;
@@ -298,6 +304,9 @@ const { toast, openToast } = useToast();
     plant.streak >= 7  ? "⭐ 주간 달성"   : null,
   [plant?.streak]);
 
+  const currentWeather = getCurrentWeather();
+  const isPhotosynthesisDisabled = currentWeather === 'cloudy' || currentWeather === 'rainy' || currentWeather === 'moonlight';
+
   // ── Render guards ───────────────────────────────────────────
   if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
   if (!onboarded) return <Onboarding onStart={handleOnboardingStart} />;
@@ -377,14 +386,40 @@ const { toast, openToast } = useToast();
 
       {/* Garden Tab */}
       {activeTab === 'garden' && (
-        <GardenView plant={plant} adAvailable={adAvailable} onAdComplete={handleAdComplete} />
+        <GardenView plant={plant} />
       )}
 
       {/* Home Tab */}
       {activeTab === 'home' && <>
 
-      {/* Weather */}
-      <WeatherBanner />
+      {/* Environment Bar */}
+      <div className="mx-4 mt-2 flex items-center justify-between rounded-full px-5 py-2 toss-card bg-opacity-60 backdrop-blur-md" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+        {(() => {
+          const season = getCurrentSeason();
+          const si = SEASON_INFO[season];
+          const weather = getCurrentWeather();
+          const wi = WEATHER_INFO[weather];
+          return (
+            <>
+              <div className="flex flex-1 items-center justify-center gap-2">
+                <span className="text-lg">{wi.emoji}</span>
+                <div className="flex flex-col items-start leading-tight">
+                  <span className="text-[9px] font-bold" style={{ color: "var(--toss-on-surface-variant)" }}>오늘 날씨</span>
+                  <span className="text-xs font-extrabold tracking-tight" style={{ color: "var(--toss-on-surface)" }}>{wi.name}</span>
+                </div>
+              </div>
+              <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-700" />
+              <div className="flex flex-1 items-center justify-center gap-2">
+                <div className="flex flex-col items-end leading-tight">
+                  <span className="text-[9px] font-bold" style={{ color: "var(--toss-on-surface-variant)" }}>현재 시즌</span>
+                  <span className="text-xs font-extrabold tracking-tight" style={{ color: "var(--toss-secondary)" }}>{si.name} <span className="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300 rounded px-1">+{si.xpMultiplier}x</span></span>
+                </div>
+                <span className="text-lg">{si.emoji}</span>
+              </div>
+            </>
+          );
+        })()}
+      </div>
 
       {/* Hero Card */}
       <div
@@ -399,10 +434,10 @@ const { toast, openToast } = useToast();
           />
         )}
         {/* 식물 이름 + 상태 뱃지 */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-1">
+        <div className="flex items-center justify-between px-5 pt-4 pb-0">
           <div className="flex items-center gap-2">
             <span
-              className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+              className="text-[10px] font-black px-2 py-0.5 rounded-full"
               style={{ backgroundColor: "rgba(0,78,203,0.08)", color: "var(--toss-primary)" }}
             >
               {STAGE_INFO[plant.stage].name}
@@ -422,32 +457,96 @@ const { toast, openToast } = useToast();
             {plant.name ? `"${plant.name}" ✏️` : "이름 짓기 ✏️"}
           </button>
         </div>
+        {/* 단계 설명 */}
+        <p className="text-center text-xs px-5 pt-0.5 pb-0" style={{ color: "var(--toss-on-surface-variant)" }}>
+          {plant.isDead ? "💀 식물이 떠났어요..." : plant.isWilting ? "😢 식물이 힘들어요!" : STAGE_INFO[plant.stage].description}
+        </p>
+
+        {/* Name Display */}
+        {plant.name && (
+          <p className="text-center text-xl font-black mt-2 tracking-tight" style={{ color: "var(--toss-on-surface)" }}>
+            {plant.name}
+          </p>
+        )}
+
         {/* 식물 캐릭터 (가운데 크게) */}
-        <PlantDisplay
-          stage={plant.stage}
-          plantType={plant.plantType}
-          isWilting={plant.isWilting}
-          isDead={plant.isDead}
-          xp={plant.xp}
-          xpRequired={plant.xpRequired}
-          justLeveledUp={justLeveledUp}
-          onGraduate={plant.stage === 'special' ? handleGraduate : undefined}
-          onComboTap={handleComboTap}
-        />
+        <div className="relative flex justify-center pt-2 pb-0">
+          <PlantDisplay
+            stage={plant.stage}
+            plantType={plant.plantType}
+            isWilting={plant.isWilting}
+            isDead={plant.isDead}
+            xp={plant.xp}
+            xpRequired={plant.xpRequired}
+            justLeveledUp={justLeveledUp}
+            onGraduate={plant.stage === 'special' ? handleGraduate : undefined}
+            onComboTap={handleComboTap}
+            onTapStatBoost={handleTapStatBoost}
+          />
+          {/* Floating Actions */}
+          {!plant.isDead && (
+            <>
+              <div className="absolute top-1/2 left-4 -translate-y-1/2 z-10">
+                <AdButton onAdComplete={handleAdComplete} adAvailable={adAvailable} adLastWatched={plant.adLastWatched} compact weatherDisabled={isPhotosynthesisDisabled} />
+              </div>
+              <div className="absolute top-1/2 right-4 -translate-y-1/2 z-10">
+                <MiniWatering plant={plant} onWater={handleMiniWater} compact />
+              </div>
+            </>
+          )}
+        </div>
         {/* XP bar */}
         {!plant.isDead && plant.stage !== 'special' && (
           <div className="px-5 pb-2">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--toss-primary)" }}>Growth XP</span>
+              <span className="text-[10px] font-bold tracking-wide" style={{ color: "var(--toss-primary)" }}>성장 XP</span>
               <span className="text-[10px] font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>{plant.xp} / {plant.xpRequired}</span>
             </div>
             <HeroXpBar xp={plant.xp} xpRequired={plant.xpRequired} />
           </div>
         )}
+
+        {/* Stats row — 히어로 카드 내부 */}
+        {!plant.isDead && (
+          <div className="grid grid-cols-3 gap-2 px-4 pb-1">
+            {[
+              { emoji: "☀️", label: "햇빛", value: plant.stats.sunlight,
+                display: plant.stats.sunlight >= 80 ? "최적" : plant.stats.sunlight >= 55 ? "좋음" : plant.stats.sunlight >= 30 ? "부족" : "위험" },
+              { emoji: "💚", label: "건강", value: plant.stats.health, display: `${Math.round(plant.stats.health)}%` },
+              { emoji: "💧", label: "수분", value: plant.stats.water,  display: `${Math.round(plant.stats.water)}%` },
+            ].map(({ emoji, label, value, display }) => {
+              const isCritical = value < 30;
+              const isWarn = value >= 30 && value < 55;
+              return (
+                <div
+                  key={label}
+                  className={`rounded-xl p-2.5 flex flex-col items-center gap-0.5 ${isCritical ? "animate-stat-danger" : ""}`}
+                  style={{
+                    backgroundColor: isCritical
+                      ? "rgba(186,26,26,0.08)"
+                      : isWarn
+                      ? "rgba(232,118,0,0.07)"
+                      : "var(--toss-surface-low)",
+                  }}
+                >
+                  <span className="text-base">{emoji}</span>
+                  <p className="text-[9px] font-bold tracking-tight" style={{ color: isCritical ? "#ba1a1a" : isWarn ? "#e87600" : "var(--toss-on-surface-variant)" }}>{label}</p>
+                  <p className="text-xs font-extrabold" style={{ color: isCritical ? "#ba1a1a" : isWarn ? "#e87600" : "var(--toss-on-surface)" }}>{display}</p>
+                  {isCritical && <span className="text-[8px] font-bold" style={{ color: "#ba1a1a" }}>⚠️</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+
+
         {/* Mood */}
-        <div className="px-5 pb-4 mt-1">
-          <PlantMood plant={plant} completedToday={totalCompleted} onInteract={handleMoodInteract} />
+        <div className="px-5 mt-1">
+          <PlantMood plant={plant} completedToday={totalCompleted} />
         </div>
+
+
         {plant.isDead && (
           <div className="px-5 pb-4">
             <Button display="full" color="dark" size="large" onClick={handleReset}>새 씨앗 심기 🌱</Button>
@@ -455,65 +554,8 @@ const { toast, openToast } = useToast();
         )}
       </div>
 
-      {/* 광고 버튼 - 캐릭터 바로 아래 */}
-      {!plant.isDead && (
-        <div className="mx-4 mt-3">
-          <AdButton onAdComplete={handleAdComplete} adAvailable={adAvailable} />
-        </div>
-      )}
-
-      {/* Plant Status Grid */}
-      {!plant.isDead && (
-        <div className="mx-4 mt-4">
-          <h3
-            className="text-base font-bold mb-3"
-            style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}
-          >
-            식물 상태
-          </h3>
-          <div className="grid grid-cols-3 gap-2.5">
-            {[
-              { emoji: "☀️", label: "햇빛", value: plant.stats.sunlight,
-                display: plant.stats.sunlight >= 80 ? "Optimal" : plant.stats.sunlight >= 55 ? "Good" : plant.stats.sunlight >= 30 ? "Low" : "Critical" },
-              { emoji: "💚", label: "건강", value: plant.stats.health,   display: `${Math.round(plant.stats.health)}%` },
-              { emoji: "💧", label: "수분", value: plant.stats.water,    display: `${Math.round(plant.stats.water)}%` },
-            ].map(({ emoji, label, value, display }) => {
-              const isLow = value < 30;
-              return (
-                <div
-                  key={label}
-                  className="toss-card rounded-2xl p-4 flex flex-col items-center gap-1 text-center"
-                  style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}
-                >
-                  <span className="text-2xl">{emoji}</span>
-                  <p
-                    className="text-[10px] font-bold uppercase tracking-tight"
-                    style={{ color: "var(--toss-on-surface-variant)" }}
-                  >
-                    {label}
-                  </p>
-                  <p
-                    className="text-lg font-extrabold"
-                    style={{
-                      color: isLow ? "#ba1a1a" : "var(--toss-on-surface)",
-                      fontFamily: "var(--font-headline, sans-serif)",
-                    }}
-                  >
-                    {display}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Mini Watering */}
-      {!plant.isDead && (
-        <div className="mx-4 mt-3">
-          <MiniWatering plant={plant} onWater={handleMiniWater} />
-        </div>
-      )}
+      {/* Banner Ad (Moved up for better visibility) */}
+      <div className="mx-4 mt-3 mb-1"><BannerAd /></div>
 
       {/* Missions */}
       {!plant.isDead && (
@@ -524,32 +566,6 @@ const { toast, openToast } = useToast();
           totalCompleted={totalCompleted}
           total={total}
         />
-      )}
-
-      {/* Bento: Tip + Growth Cycle */}
-      {!plant.isDead && (
-        <div className="grid grid-cols-2 gap-3 mx-4 mt-3">
-          <div className="toss-card rounded-2xl p-4">
-            <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--toss-primary)" }}>오늘의 팁</p>
-            <p className="text-sm font-semibold leading-snug" style={{ color: "var(--toss-on-surface)" }}>
-              {plant.streak >= 7 ? "🌟 7일 연속! 주간 보너스 XP를 받으세요" :
-               plant.stats.water < 30 ? "💧 물 부족! 미션을 완료해 수분을 채워요" :
-               plant.stats.sunlight < 30 ? "☀️ 햇빛이 부족해요! 야외 활동 미션을 해보세요" :
-               "🌿 꾸준히 돌보면 식물이 쑥쑥 자라요!"}
-            </p>
-          </div>
-          <div className="rounded-2xl p-4" style={{ backgroundColor: "rgba(0,108,73,0.08)" }}>
-            <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--toss-secondary)" }}>성장 단계</p>
-            <p className="text-sm font-semibold leading-snug" style={{ color: "var(--toss-on-surface)" }}>
-              {STAGE_INFO[plant.stage].description}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Banner Ad */}
-      {!plant.isDead && (
-        <div className="mx-4 mt-3"><BannerAd /></div>
       )}
 
       {/* End Home Tab */}

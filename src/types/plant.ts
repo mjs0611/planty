@@ -2,7 +2,7 @@ export type PlantStage = 'seed' | 'sprout' | 'young' | 'bud' | 'flower' | 'fruit
 export type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'night';
 export type Weather = 'sunny' | 'cloudy' | 'rainy' | 'windy' | 'moonlight';
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
-export type PlantType = 'green' | 'cactus' | 'cherry' | 'sunflower' | 'bamboo' | 'rose';
+export type PlantType = 'green' | 'flower' | 'cactus' | 'sunflower' | 'rose' | 'bamboo' | 'mushroom' | 'succulent' | 'clover' | 'monstera';
 
 export interface PlantStats {
   water: number;
@@ -56,6 +56,8 @@ export interface PlantState {
   isWilting: boolean;
   isDead: boolean;
   totalDaysAlive: number;
+  tapHealthToday: number;
+  lastTapStatDate: string | null;
 }
 
 export interface GrowthEvent {
@@ -68,6 +70,7 @@ export interface MissionResult {
   state: PlantState;
   luckyBonus: boolean;
   weatherBonus: boolean;
+  shieldBonus: boolean;
   xpGained: number;
   growthEvent?: GrowthEvent;
 }

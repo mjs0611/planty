@@ -3,12 +3,12 @@ export const STORAGE_KEY = "planty_state";
 export const ONBOARDED_KEY = "planty_onboarded";
 
 // ── Cooldowns (ms) ────────────────────────────────────────────────────────────
-export const MINI_WATERING_COOLDOWN_MS = 3 * 60 * 60 * 1000;
-export const AD_COOLDOWN_MS = 60 * 60 * 1000;
+export const MINI_WATERING_COOLDOWN_MS = 2 * 60 * 60 * 1000;
+export const AD_COOLDOWN_MS = 10 * 60 * 1000;
 export const MOOD_INTERACT_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 
 // ── Rewards ───────────────────────────────────────────────────────────────────
-export const AD_XP_REWARD = 50;
+export const AD_XP_REWARD = 10;
 
 // ── Creature spawning ─────────────────────────────────────────────────────────
 export const CREATURE_SPAWN_MIN_MS = 90_000;

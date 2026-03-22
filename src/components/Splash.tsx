@@ -1,5 +1,5 @@
-"use client";
 import { useEffect, useState } from "react";
+import { CuteSproutSplash } from "./icons";
 
 interface Props {
   onDone: () => void;
@@ -21,7 +21,7 @@ export default function Splash({ onDone }: Props) {
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center"
       style={{
-        background: "linear-gradient(135deg, #004ecb 0%, #0064ff 100%)",
+        background: "linear-gradient(160deg, #f0faf4 0%, #e0f5ea 100%)",
         transition: "opacity 400ms ease-out",
         opacity: visible ? 1 : 0,
         pointerEvents: "none",
@@ -35,15 +35,17 @@ export default function Splash({ onDone }: Props) {
         }}
         className="flex flex-col items-center gap-4"
       >
-        <span className="text-7xl">🌿</span>
+        <div className="drop-shadow-[0_8px_16px_rgba(34,197,94,0.3)]">
+          <CuteSproutSplash className="w-32 h-32" />
+        </div>
         <div className="text-center">
           <p
-            className="text-3xl font-bold text-white tracking-tight"
-            style={{ fontFamily: "var(--font-headline, 'Plus Jakarta Sans', sans-serif)" }}
+            className="text-3xl font-bold tracking-tight"
+            style={{ color: "#1b4332", fontFamily: "var(--font-headline, 'Plus Jakarta Sans', sans-serif)" }}
           >
             플랜티
           </p>
-          <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.7)" }}>
+          <p className="text-sm mt-1" style={{ color: "rgba(27,67,50,0.55)" }}>
             매일 돌봐주는 나의 가상 식물
           </p>
         </div>

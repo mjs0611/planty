@@ -22,11 +22,37 @@ export default function BannerAd({ className }: { className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const destroyRef = useRef<(() => void) | null>(null);
   const [visible, setVisible] = useState(true);
+  // isSupported를 state로 관리해 마운트 후 프레임워크 준비 여부 재확인
+  const [isSupported, setIsSupported] = useState(false);
   const { theme } = useTheme();
 
-  const isSupported = (() => {
-    try { return TossAds.attachBanner.isSupported(); } catch { return false; }
-  })();
+  // 마운트 직후 지원 여부 확인 (프레임워크 초기화 완료 시점 대응)
+  useEffect(() => {
+    const check = () => {
+      try {
+        return TossAds.attachBanner.isSupported() === true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (check()) {
+      setIsSupported(true);
+      return;
+    }
+    // 프레임워크 초기화 지연 대응: 최대 2초간 100ms 간격으로 재시도
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (check()) {
+        setIsSupported(true);
+        clearInterval(interval);
+      } else if (attempts >= 20) {
+        clearInterval(interval);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current || !isSupported || !AD_GROUP_ID) return;

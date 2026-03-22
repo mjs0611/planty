@@ -1,18 +1,18 @@
 import { Mission, TimeSlotMissions } from "@/types/plant";
 
 export const ALL_MISSIONS: Mission[] = [
-  { id: 'water',     emoji: '💧', label: '물 주기',        statEffect: { water: 20 },                xpReward: 15 },
-  { id: 'sunlight',  emoji: '☀️', label: '햇빛 주기',      statEffect: { sunlight: 20 },             xpReward: 15 },
-  { id: 'wipe',      emoji: '🍃', label: '잎 닦기',         statEffect: { health: 15 },               xpReward: 10 },
-  { id: 'talk',      emoji: '💬', label: '말 걸기',          statEffect: { health: 10 },               xpReward: 10 },
-  { id: 'fertilize', emoji: '💊', label: '영양제 주기',     statEffect: { health: 20, water: 5 },     xpReward: 20 },
-  { id: 'observe',   emoji: '📸', label: '사진 관찰',       statEffect: { sunlight: 10, health: 5 },  xpReward: 12 },
-  { id: 'prune',     emoji: '✂️', label: '가지치기',         statEffect: { health: 25 },               xpReward: 18 },
-  { id: 'sing',      emoji: '🎵', label: '노래 불러주기',   statEffect: { health: 12, sunlight: 8 },  xpReward: 14 },
-  { id: 'mist',      emoji: '🌊', label: '분무기 뿌리기',   statEffect: { water: 15, health: 5 },     xpReward: 12 },
-  { id: 'stretch',   emoji: '🤸', label: '줄기 세워주기',   statEffect: { health: 10, sunlight: 10 }, xpReward: 12 },
-  { id: 'journal',   emoji: '📓', label: '식물 일기 쓰기',  statEffect: { health: 15 },               xpReward: 15 },
-  { id: 'hug',       emoji: '🤗', label: '안아주기',         statEffect: { health: 20 },               xpReward: 15 },
+  { id: 'water',     emoji: '💧', label: '물 듬뿍 주기',        statEffect: { water: 20 },                xpReward: 15 },
+  { id: 'sunlight',  emoji: '☀️', label: '햇빛 쬐어주기',      statEffect: { sunlight: 20 },             xpReward: 15 },
+  { id: 'wipe',      emoji: '🍃', label: '잎사귀 닦아주기',     statEffect: { health: 15 },               xpReward: 10 },
+  { id: 'talk',      emoji: '💬', label: '다정하게 말 걸기',    statEffect: { health: 10 },               xpReward: 10 },
+  { id: 'fertilize', emoji: '💊', label: '식물 영양제 꽂기',    statEffect: { health: 20, water: 5 },     xpReward: 20 },
+  { id: 'observe',   emoji: '📸', label: '성장일기 사진 찍기',  statEffect: { sunlight: 10, health: 5 },  xpReward: 12 },
+  { id: 'prune',     emoji: '✂️', label: '시든 잎 잘라주기',    statEffect: { health: 25 },               xpReward: 18 },
+  { id: 'sing',      emoji: '🎵', label: '기분 좋은 노래 틀기', statEffect: { health: 12, sunlight: 8 },  xpReward: 14 },
+  { id: 'mist',      emoji: '🌊', label: '잎에 분무기 뿌리기',  statEffect: { water: 15, health: 5 },     xpReward: 12 },
+  { id: 'breeze',    emoji: '🌬️', label: '선선한 바람 쐬주기',  statEffect: { health: 15, sunlight: 5 },  xpReward: 15 },
+  { id: 'journal',   emoji: '📓', label: '성장 기록 남기기',    statEffect: { health: 15 },               xpReward: 15 },
+  { id: 'share',     emoji: '💌', label: '친구에게 자랑하기',   statEffect: { health: 20 },               xpReward: 20 },
 ];
 
 // Pick 12 unique missions for today (3 per slot), seeded by date

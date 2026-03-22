@@ -30,9 +30,9 @@ describe('seasonXpMultiplier', () => {
 });
 
 describe('getCurrentWeekStr', () => {
-  it('"YYYY-WW" 형식 반환', () => {
+  it('"YYYY-WNN" 형식 반환', () => {
     const week = getCurrentWeekStr();
-    expect(week).toMatch(/^\d{4}-\d{2}$/);
+    expect(week).toMatch(/^\d{4}-W\d{2}$/);
   });
 
   it('올해 연도 포함', () => {
@@ -42,7 +42,7 @@ describe('getCurrentWeekStr', () => {
 });
 
 describe('PLANT_TYPE_ORDER', () => {
-  it('6가지 식물 타입 순서 유지', () => {
-    expect(PLANT_TYPE_ORDER).toEqual(['green', 'cactus', 'cherry', 'sunflower', 'bamboo', 'rose']);
+  it('10가지 식물 타입 순서 유지', () => {
+    expect(PLANT_TYPE_ORDER).toEqual(['green', 'flower', 'cactus', 'sunflower', 'rose', 'bamboo', 'mushroom', 'succulent', 'clover', 'monstera']);
   });
 });

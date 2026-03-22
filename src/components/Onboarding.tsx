@@ -1,11 +1,13 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { PlantType } from "@/types/plant";
+import { PLANT_TYPE_INFO, PLANT_TYPE_ORDER } from "@/lib/season";
 
 interface Props {
-  onStart: (plantName?: string) => void;
+  onStart: (plantName?: string, plantType?: PlantType) => void;
 }
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 const FEATURES = [
   {
@@ -28,6 +30,7 @@ const FEATURES = [
 export default function Onboarding({ onStart }: Props) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
+  const [selectedType, setSelectedType] = useState<PlantType>("green");
   const [featureVisible, setFeatureVisible] = useState(false);
   const touchStartX = useRef(0);
 
@@ -41,7 +44,7 @@ export default function Onboarding({ onStart }: Props) {
 
   const goNext = () => setStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
   const goPrev = () => setStep(s => Math.max(s - 1, 0));
-  const handleStart = () => onStart(name.trim() || undefined);
+  const handleStart = () => onStart(name.trim() || undefined, selectedType);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -128,21 +131,18 @@ export default function Onboarding({ onStart }: Props) {
               </p>
             </div>
 
-            {/* Plant image with floating card */}
             <div className="relative w-full max-w-[300px] aspect-square flex items-center justify-center">
-              {/* Ambient glow */}
               <div
                 className="absolute inset-0 rounded-full blur-3xl opacity-40 pointer-events-none"
                 style={{ background: "radial-gradient(circle, rgba(99,253,187,0.35), transparent 70%)" }}
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/plants/stage_1_seed_cute.png"
+                src="/plants/green/stage_1.png"
                 alt="씨앗"
                 className="w-4/5 h-4/5 object-contain drop-shadow-2xl relative z-10"
                 style={{ animation: "breathe 4s ease-in-out infinite" }}
               />
-              {/* Floating health card */}
               <div
                 className="absolute -bottom-4 right-0 z-20 flex items-center gap-2.5 rounded-2xl px-3 py-2.5"
                 style={{
@@ -227,14 +227,75 @@ export default function Onboarding({ onStart }: Props) {
             </div>
           </div>
 
-          {/* ── Step 2: Name your plant ── */}
+          {/* ── Step 2: Choose plant type ── */}
+          <div
+            className="flex flex-col items-center justify-center px-8 text-center"
+            style={{ width: `${100 / TOTAL_STEPS}%` }}
+          >
+            <h2
+              className="text-2xl font-extrabold mb-2"
+              style={{
+                color: "#1b1c1c",
+                fontFamily: "var(--font-headline, 'Plus Jakarta Sans', sans-serif)",
+              }}
+            >
+              어떤 식물을<br />키울까요?
+            </h2>
+            <p className="text-sm mb-8" style={{ color: "#424656" }}>
+              황금 식물로 키운 뒤 다음 종류로 이어져요
+            </p>
+
+            <div className="flex flex-col gap-3 w-full">
+              {PLANT_TYPE_ORDER.map(type => {
+                const info = PLANT_TYPE_INFO[type];
+                const isSelected = selectedType === type;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedType(type)}
+                    className="flex items-center gap-4 rounded-2xl p-4 text-left transition-all duration-200 active:scale-[0.98]"
+                    style={{
+                      backgroundColor: isSelected ? "rgba(0,78,203,0.06)" : "#ffffff",
+                      border: `2px solid ${isSelected ? "#004ecb" : "#eae8e7"}`,
+                      boxShadow: isSelected ? "0 4px 16px -4px rgba(0,84,216,0.12)" : "none",
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/plants/${type}/stage_1.png`}
+                      alt={info.name}
+                      className="w-14 h-14 object-contain flex-shrink-0"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold" style={{ color: "#1b1c1c" }}>
+                        {info.emoji} {info.name}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: "#424656" }}>{info.desc}</p>
+                    </div>
+                    {isSelected && (
+                      <div
+                        className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: "#004ecb" }}
+                      >
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Step 3: Name your plant ── */}
           <div
             className="flex flex-col items-center justify-center px-8 text-center"
             style={{ width: `${100 / TOTAL_STEPS}%` }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/plants/stage_1_seed_cute.png"
+              src={`/plants/${selectedType}/stage_1.png`}
               alt="씨앗"
               className="w-32 h-32 object-contain drop-shadow-lg mb-6"
               style={{ animation: "breathe 4s ease-in-out infinite" }}
@@ -310,7 +371,7 @@ export default function Onboarding({ onStart }: Props) {
 
         {step === TOTAL_STEPS - 1 && (
           <button
-            onClick={() => onStart(undefined)}
+            onClick={() => onStart(undefined, selectedType)}
             className="text-sm py-2 transition-colors"
             style={{ color: "#424656" }}
           >

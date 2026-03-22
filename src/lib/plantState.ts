@@ -7,20 +7,25 @@ import { STORAGE_KEY, AD_XP_REWARD, MINI_WATERING_COOLDOWN_MS, AD_COOLDOWN_MS, M
 
 const STAGE_ORDER: PlantStage[] = ['seed', 'sprout', 'young', 'bud', 'flower', 'fruit', 'bloom', 'special'];
 
+export function getPlantImage(stage: PlantStage, plantType: PlantType): string {
+  const idx = STAGE_ORDER.indexOf(stage) + 1;
+  return `/plants/${plantType}/stage_${idx}.png`;
+}
+
 const XP_REQUIRED: Record<PlantStage, number> = {
   seed: 30, sprout: 60, young: 100, bud: 150,
   flower: 200, fruit: 250, bloom: 300, special: 9999,
 };
 
-export const STAGE_INFO: Record<PlantStage, { image: string; name: string; description: string }> = {
-  seed: { image: '/plants/stage_1_seed_cute.png', name: '씨앗', description: '작은 씨앗이 싹을 틔우려 해요' },
-  sprout: { image: '/plants/stage_2_sprout_cute.png', name: '새싹', description: '귀여운 새싹이 올라왔어요!' },
-  young: { image: '/plants/stage_3_young_cute.png', name: '어린 식물', description: '쑥쑥 자라고 있어요!' },
-  bud: { image: '/plants/stage_4_bud_cute.png', name: '꽃봉오리', description: '꽃이 피려고 해요!' },
-  flower: { image: '/plants/stage_5_flower_cute.png', name: '꽃', description: '예쁜 꽃이 피었어요!' },
-  fruit: { image: '/plants/stage_6_fruit_cute.png', name: '열매', description: '달콤한 열매가 맺혔어요!' },
-  bloom: { image: '/plants/stage_7_bloom.png', name: '만개', description: '화려하게 만개했어요!' },
-  special: { image: '/plants/stage_8_golden.png', name: '황금 식물', description: '전설의 황금 식물이 되었어요!' },
+export const STAGE_INFO: Record<PlantStage, { name: string; description: string }> = {
+  seed:    { name: '씨앗',     description: '작은 씨앗이 싹을 틔우려 해요' },
+  sprout:  { name: '새싹',     description: '귀여운 새싹이 올라왔어요!' },
+  young:   { name: '어린 식물', description: '쑥쑥 자라고 있어요!' },
+  bud:     { name: '꽃봉오리', description: '꽃이 피려고 해요!' },
+  flower:  { name: '꽃',       description: '예쁜 꽃이 피었어요!' },
+  fruit:   { name: '열매',     description: '달콤한 열매가 맺혔어요!' },
+  bloom:   { name: '만개',     description: '화려하게 만개했어요!' },
+  special: { name: '황금 식물', description: '전설의 황금 식물이 되었어요!' },
 };
 
 const MAX_SHIELDS = 2;
@@ -65,6 +70,8 @@ export function getInitialState(): PlantState {
     lastLoginBonusDate: null,
     lastWateringTime: null,
     lastMoodInteractTime: null,
+    tapHealthToday: 0,
+    lastTapStatDate: null,
     streakShields: 1, // Start with 1 shield
     lastShieldRefillWeek: getCurrentWeekStr(),
     completedMissions: [],
@@ -84,6 +91,21 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let state: any = JSON.parse(raw);
 
+    // Migrate old PlantType (6종 → 3종)
+    const LEGACY_TYPE_MAP: Record<string, PlantType> = {
+      cherry: 'flower', sunflower: 'flower', rose: 'flower', bamboo: 'green',
+    };
+    if (state.plantType && LEGACY_TYPE_MAP[state.plantType]) {
+      state.plantType = LEGACY_TYPE_MAP[state.plantType];
+    }
+    if (Array.isArray(state.garden)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      state.garden = state.garden.map((g: any) => ({
+        ...g,
+        type: LEGACY_TYPE_MAP[g.type] ?? g.type,
+      }));
+    }
+
     // Migrate missing fields
     if (!state.lastCareDate) state.lastCareDate = null;
     if (!state.adLastWatched) state.adLastWatched = null;
@@ -94,6 +116,8 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
     if (!state.garden) state.garden = [];
     if (state.streakShields === undefined) state.streakShields = 0;
     if (!state.lastShieldRefillWeek) state.lastShieldRefillWeek = null;
+    if (state.tapHealthToday === undefined) state.tapHealthToday = 0;
+    if (!state.lastTapStatDate) state.lastTapStatDate = null;
     if (!state.maxStreak) state.maxStreak = state.streak ?? 0;
     if (state.lastMilestoneStreak === undefined) state.lastMilestoneStreak = 0;
 
@@ -111,6 +135,17 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
 
     // Refresh missions on new day
     if (state.todayMissionsDate !== today) {
+      // 스탯 일일 감소 (지난 날 수만큼 누적 적용, 최대 7일)
+      const prevDate = state.todayMissionsDate;
+      const decayDays = prevDate
+        ? Math.min(differenceInCalendarDays(new Date(), parseISO(prevDate)), 7)
+        : 1;
+      state.stats = {
+        water:    Math.max(0, state.stats.water    - 15 * decayDays),
+        sunlight: Math.max(0, state.stats.sunlight - 12 * decayDays),
+        health:   Math.max(0, state.stats.health   -  8 * decayDays),
+      };
+
       state.timeSlotMissions = getTodayMissions(today);
       state.todayMissionsDate = today;
       state.completedMissions = [];
@@ -168,7 +203,7 @@ export function completeMission(
   xpReward: number
 ): MissionResult {
   if (state.completedMissions.includes(slotId) || state.isDead) {
-    return { state, luckyBonus: false, weatherBonus: false, xpGained: 0 };
+    return { state, luckyBonus: false, weatherBonus: false, shieldBonus: false, xpGained: 0 };
   }
 
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -205,7 +240,10 @@ export function completeMission(
 
   // Lucky bonus (20%)
   const luckyBonus = Math.random() < 0.2;
-  const multiplier = wMult * sMult * (luckyBonus ? 2 : 1);
+  // Shield A: 실드 보유 중 XP +20%
+  const shieldBonus = (state.streakShields ?? 0) > 0;
+  const shieldBoost = shieldBonus ? 1.2 : 1;
+  const multiplier = wMult * sMult * (luckyBonus ? 2 : 1) * shieldBoost;
   const xpGained = Math.round(xpReward * multiplier);
 
   // Growth event (10% chance)
@@ -228,21 +266,21 @@ export function completeMission(
   };
   next = applyXp(next, xpGained + eventXp);
 
-  return { state: next, luckyBonus, weatherBonus, xpGained, growthEvent };
+  return { state: next, luckyBonus, weatherBonus, shieldBonus, xpGained, growthEvent };
 }
 
 export function applyAdBoost(state: PlantState): { state: PlantState; xpGained: number } {
   let next = applyXp(state, AD_XP_REWARD);
-  next = { ...next, isWilting: false, adLastWatched: new Date().toISOString() };
+  next = { ...next, adLastWatched: new Date().toISOString() };
   return { state: next, xpGained: AD_XP_REWARD };
 }
 
 export function applyMiniWatering(state: PlantState): { state: PlantState; xpGained: number } | null {
   if (!isMiniWateringAvailable(state)) return null;
   const newStats = { ...state.stats, water: Math.min(100, state.stats.water + 8) };
-  let next = applyXp({ ...state, stats: newStats }, 5);
+  let next = applyXp({ ...state, stats: newStats }, 10);
   next = { ...next, lastWateringTime: new Date().toISOString() };
-  return { state: next, xpGained: 5 };
+  return { state: next, xpGained: 10 };
 }
 
 export function isMiniWateringAvailable(state: PlantState): boolean {
@@ -296,6 +334,7 @@ export function graduatePlant(state: PlantState): PlantState {
     lastLoginBonusDate: state.lastLoginBonusDate,
     streakShields: state.streakShields,
     lastShieldRefillWeek: state.lastShieldRefillWeek,
+    lastMilestoneStreak: state.lastMilestoneStreak,
     timeSlotMissions: getTodayMissions(today),
     todayMissionsDate: today,
     totalDaysAlive: state.totalDaysAlive,
@@ -351,6 +390,36 @@ export function applyCreaturePenalty(state: PlantState, statEffect: Partial<Plan
 export function isAdAvailable(state: PlantState): boolean {
   if (!state.adLastWatched) return true;
   return Date.now() - new Date(state.adLastWatched).getTime() >= AD_COOLDOWN_MS;
+}
+
+const TAP_STAT_DAILY_CAP = 10;
+
+export function applyTapStatBoost(state: PlantState): { state: PlantState; gained: boolean } {
+  if (state.isDead) return { state, gained: false };
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const todayCount = state.lastTapStatDate === today ? (state.tapHealthToday ?? 0) : 0;
+  if (todayCount >= TAP_STAT_DAILY_CAP) return { state, gained: false };
+
+  const weather = getCurrentWeather();
+  let bonusSunlight = 0;
+  let bonusWater = 0;
+  
+  if (weather === 'sunny' && Math.random() < 0.25) bonusSunlight = 1;
+  if (weather === 'rainy' && Math.random() < 0.25) bonusWater = 1;
+
+  const newHealth = Math.min(100, state.stats.health + 1);
+  const newSunlight = Math.min(100, state.stats.sunlight + bonusSunlight);
+  const newWater = Math.min(100, state.stats.water + bonusWater);
+
+  return {
+    state: {
+      ...state,
+      stats: { ...state.stats, health: newHealth, sunlight: newSunlight, water: newWater },
+      tapHealthToday: todayCount + 1,
+      lastTapStatDate: today,
+    },
+    gained: true,
+  };
 }
 
 export function getAllMissionIds(tsm: { morning: string[]; afternoon: string[]; evening: string[]; night: string[] }): string[] {

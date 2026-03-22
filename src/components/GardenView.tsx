@@ -1,45 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
 import { PlantState, CollectedPlant, PlantType } from "@/types/plant";
 import { PLANT_TYPE_INFO, PLANT_TYPE_ORDER } from "@/lib/season";
-import { STAGE_INFO } from "@/lib/plantState";
+import { STAGE_INFO, getPlantImage } from "@/lib/plantState";
+import { PlantStage } from "@/types/plant";
+
+const STAGE_ORDER: PlantStage[] = ['seed', 'sprout', 'young', 'bud', 'flower', 'fruit', 'bloom', 'special'];
+import BannerAd from "./BannerAd";
 
 interface Props {
   plant: PlantState;
-  adAvailable: boolean;
-  onAdComplete: () => void;
 }
 
-// XP bar with mount animation
-function GardenXpBar({ xp, xpRequired }: { xp: number; xpRequired: number }) {
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setWidth(Math.min((xp / xpRequired) * 100, 100)));
-    return () => cancelAnimationFrame(id);
-  }, [xp, xpRequired]);
-  return (
-    <div className="h-3 w-full rounded-full overflow-hidden" style={{ backgroundColor: "var(--toss-surface-high)" }}>
-      <div
-        className="h-full rounded-full"
-        style={{
-          width: `${width}%`,
-          background: "linear-gradient(to right, #006c49, #3fe0a1, #63fdbb)",
-          transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)",
-        }}
-      />
-    </div>
-  );
-}
-
-function StatLabel(value: number): string {
-  if (value >= 80) return "Optimal";
-  if (value >= 55) return "Good";
-  if (value >= 30) return "Low";
-  return "Critical";
-}
-
-export default function GardenView({ plant, adAvailable, onAdComplete }: Props) {
-  const stageInfo = STAGE_INFO[plant.stage];
+export default function GardenView({ plant }: Props) {
   const typeInfo = PLANT_TYPE_INFO[plant.plantType];
 
   const lockedTypes = PLANT_TYPE_ORDER.filter(
@@ -47,183 +19,213 @@ export default function GardenView({ plant, adAvailable, onAdComplete }: Props) 
   );
   const nextType = lockedTypes[0] ?? null;
 
+  // 정원 통계
+  const totalDays = plant.garden.reduce((sum, g) => sum + g.totalDaysAlive, 0);
+  const maxStreak = Math.max(plant.streak, ...plant.garden.map(g => g.maxStreak));
+  const collectedCount = plant.garden.length;
+  const currentStageIdx = STAGE_ORDER.indexOf(plant.stage);
+  const growthPct = plant.isDead ? 0 : Math.round(((currentStageIdx) / (STAGE_ORDER.length - 1)) * 100);
+
   return (
     <div className="pb-8">
-      {/* Hero */}
-      <div className="flex flex-col items-center pt-6 px-6 text-center">
-        {/* Plant image with ambient glow */}
-        <div className="relative w-56 h-56 mb-5">
-          <div
-            className="absolute inset-4 rounded-full blur-3xl"
-            style={{ backgroundColor: "rgba(99,253,187,0.20)" }}
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={stageInfo.image}
-            alt={stageInfo.name}
-            className="relative z-10 w-full h-full object-contain drop-shadow-xl"
-            style={{
-              animation: !plant.isDead && !plant.isWilting ? "breathe 4s ease-in-out infinite" : undefined,
-              filter: plant.isWilting && !plant.isDead
-                ? `sepia(0.6) brightness(0.85) hue-rotate(${typeInfo.hueRotate}deg)`
-                : typeInfo.hueRotate ? `hue-rotate(${typeInfo.hueRotate}deg)` : undefined,
-            }}
-          />
+      {/* 배너 광고 */}
+      <div className="mx-4 mt-3">
+        <BannerAd />
+      </div>
+
+      {/* 정원 통계 요약 */}
+      <div className="mx-4 mt-2 toss-card rounded-3xl p-4"
+        style={{ boxShadow: "0 4px 20px -4px rgba(0,108,73,0.08)" }}>
+        <p className="text-[10px] font-black uppercase tracking-widest mb-3"
+          style={{ color: "var(--toss-secondary)" }}>내 정원 기록</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-2xl font-black" style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}>
+              {collectedCount}
+            </span>
+            <span className="text-[10px] font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>수집한 식물</span>
+          </div>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-2xl font-black" style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}>
+              {maxStreak}
+            </span>
+            <span className="text-[10px] font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>최고 연속일</span>
+          </div>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-2xl font-black" style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}>
+              {totalDays + (plant.isDead ? 0 : 1)}
+            </span>
+            <span className="text-[10px] font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>누적 돌봄 일</span>
+          </div>
         </div>
 
-        {/* Name + stage */}
-        <div className="w-full space-y-1 mb-4">
-          <h2
-            className="text-2xl font-black tracking-tight"
-            style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}
-          >
-            {plant.name || stageInfo.name}
-          </h2>
-          <p className="text-sm font-medium" style={{ color: "var(--toss-on-surface-variant)" }}>
-            {stageInfo.name} · {typeInfo.emoji} {typeInfo.name}
-          </p>
-        </div>
-
-        {/* XP bar */}
-        {plant.stage !== "special" && !plant.isDead && (
-          <div className="w-full space-y-1.5 mb-2">
-            <GardenXpBar xp={plant.xp} xpRequired={plant.xpRequired} />
-            <div className="flex justify-between text-xs font-bold px-0.5" style={{ color: "var(--toss-primary)" }}>
-              <span>{plant.xp} XP</span>
-              <span>{plant.xpRequired} XP</span>
+        {/* 현재 식물 진행 바 */}
+        {!plant.isDead && (
+          <div className="mt-4">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-[10px] font-bold" style={{ color: "var(--toss-on-surface-variant)" }}>
+                {typeInfo.emoji} {typeInfo.name} 성장 진행도
+              </span>
+              <span className="text-[10px] font-bold" style={{ color: "var(--toss-secondary)" }}>{growthPct}%</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--toss-surface-high)" }}>
+              <div
+                className="h-full rounded-full transition-all duration-1000"
+                style={{
+                  width: `${growthPct}%`,
+                  background: "linear-gradient(to right, #006c49, #3fe0a1)",
+                }}
+              />
+            </div>
+            <div className="flex justify-between mt-1.5">
+              {STAGE_ORDER.map((s, i) => {
+                const passed = i <= currentStageIdx;
+                return (
+                  <div key={s} className="flex flex-col items-center gap-0.5">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: passed ? "var(--toss-secondary)" : "var(--toss-surface-high)" }}
+                    />
+                    {i === currentStageIdx && (
+                      <span className="text-[8px] font-bold" style={{ color: "var(--toss-secondary)" }}>
+                        {STAGE_INFO[s].name}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
-
-        {/* Ad button */}
-        {!plant.isDead && (
-          <button
-            className="w-full mt-3 py-4 px-6 rounded-full font-bold text-white flex items-center justify-center gap-2 active:scale-95 transition-all"
-            style={{
-              background: adAvailable
-                ? "linear-gradient(135deg, #004ecb, #0064ff)"
-                : "var(--toss-surface-high)",
-              color: adAvailable ? "#fff" : "var(--toss-on-surface-variant)",
-              boxShadow: adAvailable ? "0 12px 32px -4px rgba(0,84,216,0.15)" : "none",
-            }}
-            onClick={adAvailable ? onAdComplete : undefined}
-            disabled={!adAvailable}
-          >
-            {adAvailable ? "📺 광고 보고 성장 XP +50 받기" : "✅ 1시간 후 광고 이용 가능"}
-          </button>
-        )}
       </div>
 
-      {/* Stat grid */}
-      {!plant.isDead && (
-        <div className="grid grid-cols-3 gap-3 mx-4 mt-5">
-          {[
-            { label: "SUNLIGHT", value: plant.stats.sunlight, display: StatLabel(plant.stats.sunlight) },
-            { label: "HEALTH",   value: plant.stats.health,   display: `${Math.round(plant.stats.health)}%` },
-            { label: "MOISTURE", value: plant.stats.water,    display: `${Math.round(plant.stats.water)}%` },
-          ].map(({ label, value, display }) => {
-            const isLow = value < 30;
-            return (
-              <div key={label} className="toss-card rounded-2xl p-4 flex flex-col items-center gap-1 text-center"
-                style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
-                <p className="text-[10px] font-bold uppercase tracking-tight"
-                  style={{ color: "var(--toss-on-surface-variant)" }}>{label}</p>
-                <p className="text-base font-extrabold"
-                  style={{ color: isLow ? "#ba1a1a" : "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}>
-                  {display}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Collection grid */}
-      <div className="mx-4 mt-6">
+      {/* 식물 컬렉션 */}
+      <div className="mx-4 mt-3">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-bold"
             style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}>
-            내 정원
+            🌿 식물 도감
           </h3>
-          <span className="text-xs font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>
-            {plant.garden.length} / {PLANT_TYPE_ORDER.length} 수집
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: "rgba(0,108,73,0.08)", color: "var(--toss-secondary)" }}>
+            {collectedCount + 1} / {PLANT_TYPE_ORDER.length}
           </span>
         </div>
+
         <div className="grid grid-cols-2 gap-3">
-          {/* 수집 완료 */}
+          {/* 수집 완료 식물 */}
           {plant.garden.map((p: CollectedPlant, i: number) => {
             const info = PLANT_TYPE_INFO[p.type];
-            const img = STAGE_INFO["special"].image;
             return (
-              <div key={i} className="toss-card rounded-2xl p-4 flex flex-col items-center gap-2">
-                <div className="w-20 h-20" style={{ filter: `hue-rotate(${info.hueRotate}deg)` }}>
+              <div key={i} className="toss-card rounded-2xl p-3 flex flex-col items-center gap-1.5">
+                <div className="relative">
+                  <div className="absolute inset-2 rounded-full blur-xl" style={{ backgroundColor: "rgba(63,224,161,0.2)" }} />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img} alt={info.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                  <img
+                    src={getPlantImage("special", p.type)}
+                    alt={info.name}
+                    className="relative w-14 h-14 object-contain"
+                  />
                 </div>
                 <div className="text-center">
                   <p className="text-xs font-bold" style={{ color: "var(--toss-on-surface)" }}>{info.emoji} {info.name}</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: "var(--toss-primary)" }}>🔥 최고 {p.maxStreak}일</p>
-                  <p className="text-[10px]" style={{ color: "var(--toss-on-surface-variant)" }}>{p.totalDaysAlive}일 함께</p>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <span className="text-[10px] font-semibold" style={{ color: "#e87600" }}>🔥 {p.maxStreak}일</span>
+                    <span className="text-[10px]" style={{ color: "var(--toss-on-surface-variant)" }}>· {p.totalDaysAlive}일 돌봄</span>
+                  </div>
                 </div>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: "rgba(0,108,73,0.10)", color: "var(--toss-secondary)" }}>
+                  ✅ 수집 완료
+                </span>
               </div>
             );
           })}
 
           {/* 현재 키우는 중 */}
-          <div className="toss-card rounded-2xl p-4 flex flex-col items-center gap-2 relative"
+          <div className="toss-card rounded-2xl p-3 flex flex-col items-center gap-1.5 relative"
             style={{ outline: "2px solid rgba(0,78,203,0.25)" }}>
             <span className="absolute top-2 left-2 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full"
               style={{ backgroundColor: "var(--toss-primary)" }}>
               성장 중
             </span>
-            <div className="w-20 h-20" style={{ filter: `hue-rotate(${typeInfo.hueRotate}deg)` }}>
+            <div className="relative">
+              <div className="absolute inset-2 rounded-full blur-xl" style={{ backgroundColor: "rgba(0,78,203,0.12)" }} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={STAGE_INFO["seed"].image} alt={typeInfo.name}
-                style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              <img
+                src={getPlantImage(plant.isDead ? "seed" : plant.stage, plant.plantType)}
+                alt={typeInfo.name}
+                className="relative w-14 h-14 object-contain"
+                style={{
+                  filter: plant.isWilting && !plant.isDead ? "sepia(0.6) brightness(0.85)" : undefined,
+                }}
+              />
             </div>
             <div className="text-center">
               <p className="text-xs font-bold" style={{ color: "var(--toss-on-surface)" }}>{typeInfo.emoji} {typeInfo.name}</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "var(--toss-secondary)" }}>성장 중...</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "var(--toss-secondary)" }}>
+                {plant.isDead ? "💀 시들었어요" : `${STAGE_INFO[plant.stage].name}`}
+              </p>
             </div>
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: "rgba(0,78,203,0.08)", color: "var(--toss-primary)" }}>
+              🌱 키우는 중
+            </span>
           </div>
 
-          {/* 다음 식물 */}
+          {/* 다음 식물 (잠김) */}
           {nextType && (() => {
             const info = PLANT_TYPE_INFO[nextType as PlantType];
             return (
-              <div key={nextType} className="toss-card rounded-2xl p-4 flex flex-col items-center gap-2 relative"
-                style={{ opacity: 0.55 }}>
-                <span className="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: "rgba(232,118,0,0.12)", color: "#e87600" }}>
-                  다음
-                </span>
-                <div className="w-20 h-20 flex items-center justify-center text-5xl">{info.emoji}</div>
+              <div key={nextType} className="toss-card rounded-2xl p-3 flex flex-col items-center gap-1.5"
+                style={{ opacity: 0.5 }}>
+                <div className="w-14 h-14 flex items-center justify-center text-4xl">{info.emoji}</div>
                 <div className="text-center">
                   <p className="text-xs font-semibold" style={{ color: "var(--toss-on-surface)" }}>{info.name}</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: "var(--toss-on-surface-variant)" }}>{info.desc}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: "var(--toss-on-surface-variant)" }}>황금 식물 달성 후 해금</p>
                 </div>
+                <span className="text-[9px] px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: "var(--toss-surface-high)", color: "var(--toss-on-surface-variant)" }}>
+                  🔒 미해금
+                </span>
               </div>
             );
           })()}
 
-          {/* 잠긴 슬롯 */}
+          {/* 추가 잠긴 슬롯 */}
           {lockedTypes.slice(1).map((type) => {
             const info = PLANT_TYPE_INFO[type as PlantType];
             return (
-              <div key={type} className="toss-card rounded-2xl p-4 flex flex-col items-center gap-2"
+              <div key={type} className="toss-card rounded-2xl p-3 flex flex-col items-center gap-1.5"
                 style={{ opacity: 0.3 }}>
-                <div className="w-20 h-20 flex items-center justify-center text-4xl">🔒</div>
+                <div className="w-14 h-14 flex items-center justify-center text-3xl">🔒</div>
                 <p className="text-xs font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>{info.emoji} {info.name}</p>
               </div>
             );
           })}
         </div>
 
-        {plant.garden.length === 0 && (
+        {collectedCount === 0 && (
           <p className="text-center text-xs mt-4" style={{ color: "var(--toss-on-surface-variant)" }}>
-            황금 식물을 키워 첫 번째 식물을 수집해보세요!
+            황금 식물을 키워 첫 번째 식물을 수집해보세요 🌟
           </p>
         )}
+      </div>
+
+      {/* 성장 팁 */}
+      <div className="mx-4 mt-3 rounded-2xl p-3"
+        style={{ backgroundColor: "rgba(0,108,73,0.06)" }}>
+        <p className="text-[10px] font-black uppercase tracking-widest mb-1.5"
+          style={{ color: "var(--toss-secondary)" }}>가드닝 팁</p>
+        <p className="text-sm font-medium leading-relaxed" style={{ color: "var(--toss-on-surface)" }}>
+          {plant.streak >= 14
+            ? "🌟 2주 연속 달성! 이 페이스라면 곧 황금 식물을 볼 수 있어요."
+            : plant.streak >= 7
+            ? "⭐ 7일 연속 돌봄 중! 꾸준함이 황금 식물로 가는 지름길이에요."
+            : collectedCount >= 1
+            ? `🏆 ${collectedCount}종 수집 완료! 다음 식물도 기대해봐요.`
+            : "💡 매일 미션을 완료하면 식물이 더 빠르게 성장해요."}
+        </p>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 import { BottomSheet, Button } from "@toss/tds-mobile";
 import { PlantState } from "@/types/plant";
-import { STAGE_INFO } from "@/lib/plantState";
+import { STAGE_INFO, getPlantImage } from "@/lib/plantState";
 import { useState } from "react";
 import { nativeShare } from "@/lib/bridge";
 
@@ -39,7 +39,7 @@ export default function ShareSheet({ plant, onClose }: Props) {
         <div className="bg-gradient-to-b from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-3xl p-5 flex flex-col items-center gap-3 mb-4">
           <div className="w-28 h-28">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={info.image} alt={info.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <img src={getPlantImage(plant.stage, plant.plantType)} alt={info.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
 
           <div className="text-center">

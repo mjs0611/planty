@@ -1,9 +1,10 @@
 "use client";
 import { Button } from "@toss/tds-mobile";
 import { PlantStage, PlantType } from "@/types/plant";
-import { STAGE_INFO } from "@/lib/plantState";
+import { STAGE_INFO, getPlantImage } from "@/lib/plantState";
 import { PLANT_TYPE_INFO } from "@/lib/season";
 import { COMBO_MILESTONE_NUMBERS, COMBO_MILESTONES } from "@/lib/constants";
+import { CutePopper, CuteHeart, CuteSparkle } from "./icons";
 import { useEffect, useState, useRef, useCallback } from "react";
 
 interface Props {
@@ -16,20 +17,21 @@ interface Props {
   justLeveledUp?: boolean;
   onGraduate?: () => void;
   onComboTap?: (combo: number) => void;
-  compact?: boolean; // hero card right-side mode
+  onTapStatBoost?: () => void; // 탭 시 건강 증가 알림
+  compact?: boolean;
 }
 
-type Particle = { id: number; x: number; y: number; emoji: string; big: boolean };
+type Particle = { id: number; x: number; y: number; node: React.ReactNode; big: boolean };
 
 export default function PlantDisplay({
   stage, plantType, isWilting, isDead, xp, xpRequired,
-  justLeveledUp, onGraduate, onComboTap, compact = false,
+  justLeveledUp, onGraduate, onComboTap, onTapStatBoost, compact = false,
 }: Props) {
   const [celebrating, setCelebrating] = useState(false);
+  const [isHappy, setIsHappy] = useState(false);
   const info = STAGE_INFO[stage];
   const typeInfo = PLANT_TYPE_INFO[plantType];
 
-  // Combo state
   const [combo, setCombo] = useState(0);
   const [comboBadgeKey, setComboBadgeKey] = useState(0);
   const [isMilestone, setIsMilestone] = useState(false);
@@ -61,7 +63,6 @@ export default function PlantDisplay({
   const handlePlantTap = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (isDead) return;
 
-    // Particle position relative to container
     const rect = containerRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -71,16 +72,11 @@ export default function PlantDisplay({
     setCombo(prev => {
       const next = prev + 1;
       const isMil = COMBO_MILESTONE_NUMBERS.has(next);
+      const node = isMil ? <CuteSparkle className="w-8 h-8 drop-shadow-md" color="#FDE047" /> : <CuteHeart className="w-5 h-5 drop-shadow-sm" />;
+      setParticles(p => [...p, { id: Date.now() + Math.random(), x, y, node, big: isMil }]);
 
-      // Particle
-      const milestoneEntry = COMBO_MILESTONES.find(m => m.combo === next);
-      const emoji = isMil ? (milestoneEntry?.emoji ?? "✨") : "💚";
-      setParticles(p => [...p, { id: Date.now() + Math.random(), x, y, emoji, big: isMil }]);
-
-      // Badge pop
       setComboBadgeKey(k => k + 1);
 
-      // Milestone flash
       if (isMil) {
         setIsMilestone(true);
         setTimeout(() => setIsMilestone(false), 500);
@@ -90,12 +86,37 @@ export default function PlantDisplay({
       return next;
     });
 
+    // 매 탭마다 건강 증가 시도
+    onTapStatBoost?.();
+
     doSquish();
-
     comboResetRef.current = setTimeout(() => setCombo(0), 1500);
-  }, [isDead, doSquish, onComboTap]);
+  }, [isDead, doSquish, onComboTap, onTapStatBoost]);
 
-  // Clean up particles
+  // 외부에서 건강 증가가 일어났을 때 행복 애니메이션 트리거
+  // onTapStatBoost가 호출된 직후 parent에서 상태 업데이트 → 여기선 자체적으로 타이밍 처리
+  const triggerHappy = useCallback(() => {
+    setIsHappy(true);
+    // 행복 파티클 추가
+    const cx = containerRef.current ? containerRef.current.offsetWidth / 2 : 80;
+    const cy = containerRef.current ? containerRef.current.offsetHeight / 2 : 80;
+    setParticles(p => [
+      ...p,
+      { id: Date.now() + 0.1, x: cx - 20, y: cy - 30, node: <CuteHeart className="w-6 h-6 drop-shadow-md" color="#F43F5E" />, big: false },
+      { id: Date.now() + 0.2, x: cx + 10, y: cy - 50, node: <CuteSparkle className="w-6 h-6 drop-shadow-md" color="#FDE047" />, big: false },
+    ]);
+    setTimeout(() => setIsHappy(false), 700);
+  }, []);
+
+  // onTapStatBoost가 호출될 때마다 행복 애니메이션
+  const prevTapRef = useRef(0);
+  const handleTapWithHappy = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    prevTapRef.current = Date.now();
+    handlePlantTap(e);
+    // 100ms 후 부모가 state 업데이트 → 건강이 실제로 올랐을 가능성이 높으면 happy 트리거
+    setTimeout(() => triggerHappy(), 80);
+  }, [handlePlantTap, triggerHappy]);
+
   useEffect(() => {
     if (!particles.length) return;
     const t = setTimeout(() => setParticles([]), 800);
@@ -106,19 +127,19 @@ export default function PlantDisplay({
     if (comboResetRef.current) clearTimeout(comboResetRef.current);
   }, []);
 
-  // ── Compact (hero card) mode ─────────────────────────────────────────────
+  // ── Compact mode ─────────────────────────────────────────────────────────
   if (compact) {
     const imageFilter = isDead ? undefined
-      : isWilting ? `sepia(0.6) brightness(0.85) hue-rotate(${typeInfo.hueRotate}deg)`
-      : typeInfo.hueRotate ? `hue-rotate(${typeInfo.hueRotate}deg)` : undefined;
+      : isWilting ? "sepia(0.6) brightness(0.85)" : undefined;
     return (
-      <div className="relative flex-shrink-0" ref={containerRef} onClick={handlePlantTap}>
+      <div className="relative flex-shrink-0" ref={containerRef} onClick={handleTapWithHappy}>
         <div
           ref={squishRef}
           className="w-20 h-20 rounded-full flex items-center justify-center cursor-pointer select-none overflow-visible"
           style={{
             backgroundColor: "rgba(0,100,255,0.06)",
-            animation: !isDead && !isWilting ? "breathe 4s ease-in-out infinite" : undefined,
+            animation: !isDead && !isWilting ? "planet-float 4.5s ease-in-out infinite" : undefined,
+            transformOrigin: "center bottom"
           }}
         >
           {isDead ? (
@@ -126,24 +147,22 @@ export default function PlantDisplay({
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={info.image}
+              src={getPlantImage(stage, plantType)}
               alt={info.name}
               className="w-16 h-16 object-contain"
               style={{ filter: imageFilter }}
             />
           )}
         </div>
-        {/* particles */}
         {particles.map(p => (
           <span
             key={p.id}
-            className="absolute pointer-events-none animate-float-up"
-            style={{ left: p.x - 10, top: p.y - 10, fontSize: p.big ? "1.5rem" : "1rem", zIndex: 20 }}
+            className="absolute pointer-events-none animate-float-up z-20"
+            style={{ left: p.x - 12, top: p.y - 12 }}
           >
-            {p.emoji}
+            {p.node}
           </span>
         ))}
-        {/* combo badge */}
         {combo > 1 && !isDead && (
           <div
             key={comboBadgeKey}
@@ -156,7 +175,7 @@ export default function PlantDisplay({
     );
   }
 
-  // ── Combo badge color (full mode) ────────────────────────────────────────
+  // ── Combo badge color ─────────────────────────────────────────────────────
   const badgeColor =
     combo >= 30 ? "bg-yellow-400 text-yellow-900 shadow-[0_0_12px_rgba(250,204,21,0.6)]" :
     combo >= 20 ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]" :
@@ -165,10 +184,10 @@ export default function PlantDisplay({
                   "bg-emerald-200 text-emerald-800";
 
   return (
-    <div className="flex flex-col items-center gap-4 py-8">
+    <div className="flex flex-col items-center gap-1 py-1">
       {celebrating && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <div className="text-7xl animate-bounce drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]">🎉</div>
+          <div className="animate-bounce drop-shadow-[0_0_20px_rgba(255,255,255,0.9)]"><CutePopper className="w-32 h-32" /></div>
         </div>
       )}
 
@@ -184,30 +203,32 @@ export default function PlantDisplay({
       {/* Tappable plant area */}
       <div
         ref={containerRef}
-        className="relative w-48 h-48 cursor-pointer select-none"
-        onClick={handlePlantTap}
+        className="relative w-64 h-64 cursor-pointer select-none mx-auto"
+        onClick={handleTapWithHappy}
       >
         {/* Squish wrapper */}
         <div ref={squishRef} className="w-full h-full">
           <div
             className={`relative w-full h-full transition-all duration-500 ${
               isDead ? "grayscale opacity-40 rotate-[15deg]" :
-              !isWilting && !celebrating ? "animate-breathe" : ""
+              !isWilting && !celebrating && !isHappy ? "animate-planet-float" : ""
             }`}
             style={{
               filter: isDead ? undefined :
-                isWilting ? `sepia(0.6) brightness(0.85) hue-rotate(${typeInfo.hueRotate}deg)` :
-                isMilestone ? `hue-rotate(${typeInfo.hueRotate}deg) brightness(1.35) drop-shadow(0 0 12px rgba(255,255,255,0.6))` :
-                typeInfo.hueRotate ? `hue-rotate(${typeInfo.hueRotate}deg)` : undefined,
+                isHappy ? "brightness(1.15) drop-shadow(0 0 14px rgba(63,224,161,0.7))" :
+                isWilting ? "sepia(0.6) brightness(0.85)" :
+                isMilestone ? "brightness(1.35) drop-shadow(0 0 12px rgba(255,255,255,0.6))" :
+                undefined,
               animation: isWilting && !isDead ? "wilt 3s ease-in-out infinite" :
-                celebrating ? "levelup-burst 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" : undefined,
+                celebrating ? "levelup-burst 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" :
+                isHappy ? "happy-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)" : undefined,
             }}
           >
             {isDead ? (
               <div className="text-[96px] leading-none flex items-center justify-center w-full h-full">🪦</div>
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={info.image} alt={info.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              <img src={getPlantImage(stage, plantType)} alt={info.name} className="w-full h-full object-contain" />
             )}
           </div>
         </div>
@@ -216,15 +237,13 @@ export default function PlantDisplay({
         {particles.map(p => (
           <span
             key={p.id}
-            className="absolute pointer-events-none animate-float-up"
+            className="absolute pointer-events-none animate-float-up z-20"
             style={{
               left: p.x - (p.big ? 16 : 10),
               top: p.y - (p.big ? 16 : 10),
-              fontSize: p.big ? "2rem" : "1.1rem",
-              zIndex: 20,
             }}
           >
-            {p.emoji}
+            {p.node}
           </span>
         ))}
 
@@ -232,28 +251,12 @@ export default function PlantDisplay({
         {combo > 1 && !isDead && (
           <div
             key={comboBadgeKey}
-            className={`absolute -top-3 -right-3 text-xs font-bold rounded-full px-2 py-0.5 min-w-[32px] text-center animate-combo-pop ${badgeColor}`}
+            className={`absolute -top-10 left-1/2 -translate-x-1/2 text-sm font-black rounded-full px-2 py-0.5 min-w-[40px] text-center animate-combo-pop z-20 ${badgeColor}`}
           >
             x{combo}
           </div>
         )}
-
-        {/* Tap hint when idle */}
-        {combo === 0 && !isDead && !isWilting && (
-          <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-gray-300 dark:text-gray-600 whitespace-nowrap pointer-events-none">
-            탭해서 교감하기
-          </div>
-        )}
       </div>
-
-      {/* Stage name & description */}
-      <div className="text-center mt-2">
-        <p className="text-lg font-bold" style={{ color: "var(--toss-on-surface)" }}>{info.name}</p>
-        <p className="text-sm" style={{ color: "var(--toss-on-surface-variant)" }}>
-          {isDead ? "💀 식물이 떠났어요..." : isWilting ? "😢 식물이 힘들어요!" : info.description}
-        </p>
-      </div>
-
 
       {/* Graduation */}
       {stage === "special" && (

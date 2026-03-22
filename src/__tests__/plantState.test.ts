@@ -53,11 +53,11 @@ describe('applyXp (via applyAdBoost)', () => {
   });
 
   it('연속 레벨업 처리', () => {
-    // xp=0, seed(30) → 50 XP → seed 완료(30) 후 sprout에 20 남음
-    const s = makeState({ stage: 'seed', xp: 0, xpRequired: 30 });
+    // xp=25, seed(30) → 10 XP → seed 완료(30) 후 sprout에 5 남음
+    const s = makeState({ stage: 'seed', xp: 25, xpRequired: 30 });
     const { state } = applyAdBoost(s);
     expect(state.stage).toBe('sprout');
-    expect(state.xp).toBe(20);
+    expect(state.xp).toBe(5);
   });
 
   it('special 단계에서 멈춤', () => {
@@ -155,16 +155,10 @@ describe('completeMission', () => {
 // ── applyAdBoost ──────────────────────────────────────────────────────────────
 
 describe('applyAdBoost', () => {
-  it('+50 XP 지급', () => {
+  it('+10 XP 지급', () => {
     const s = makeState({ xp: 0 });
     const { xpGained } = applyAdBoost(s);
-    expect(xpGained).toBe(50);
-  });
-
-  it('isWilting 해제', () => {
-    const s = makeState({ isWilting: true });
-    const { state } = applyAdBoost(s);
-    expect(state.isWilting).toBe(false);
+    expect(xpGained).toBe(10);
   });
 
   it('adLastWatched 타임스탬프 기록', () => {
@@ -185,20 +179,20 @@ describe('isAdAvailable', () => {
     expect(isAdAvailable(makeState({ adLastWatched: hoursAgo(2) }))).toBe(true);
   });
 
-  it('1시간 미만이면 false', () => {
-    expect(isAdAvailable(makeState({ adLastWatched: hoursAgo(0.5) }))).toBe(false);
+  it('10분 미만이면 false', () => {
+    expect(isAdAvailable(makeState({ adLastWatched: hoursAgo(0.1) }))).toBe(false);
   });
 });
 
 // ── applyMiniWatering ─────────────────────────────────────────────────────────
 
 describe('applyMiniWatering', () => {
-  it('물 +8, XP +5 지급', () => {
+  it('물 +8, XP +10 지급', () => {
     const s = makeState({ stats: { water: 50, sunlight: 80, health: 80 } });
     const result = applyMiniWatering(s);
     expect(result).not.toBeNull();
     expect(result!.state.stats.water).toBe(58);
-    expect(result!.xpGained).toBe(5);
+    expect(result!.xpGained).toBe(10);
   });
 
   it('쿨다운 중이면 null 반환', () => {
@@ -294,7 +288,7 @@ describe('graduatePlant', () => {
   it('식물 타입 순환', () => {
     const s = makeState({ stage: 'special', plantType: 'green' });
     const next = graduatePlant(s);
-    expect(next.plantType).toBe('cactus');
+    expect(next.plantType).toBe('flower');
   });
 
   it('garden에 수집 기록 추가', () => {
