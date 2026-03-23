@@ -1,8 +1,9 @@
 "use client";
 import { Button } from "@toss/tds-mobile";
 import { PlantStage, PlantType } from "@/types/plant";
-import { STAGE_INFO, getPlantImage } from "@/lib/plantState";
+import { STAGE_INFO } from "@/lib/plantState";
 import { PLANT_TYPE_INFO } from "@/lib/season";
+import PlantCharacter from "./PlantCharacter";
 import { COMBO_MILESTONE_NUMBERS, COMBO_MILESTONES } from "@/lib/constants";
 import { CutePopper, CuteHeart, CuteSparkle } from "./icons";
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -129,8 +130,6 @@ export default function PlantDisplay({
 
   // ── Compact mode ─────────────────────────────────────────────────────────
   if (compact) {
-    const imageFilter = isDead ? undefined
-      : isWilting ? "sepia(0.6) brightness(0.85)" : undefined;
     return (
       <div className="relative flex-shrink-0" ref={containerRef} onClick={handleTapWithHappy}>
         <div
@@ -139,19 +138,14 @@ export default function PlantDisplay({
           style={{
             backgroundColor: "rgba(0,100,255,0.06)",
             animation: !isDead && !isWilting ? "planet-float 4.5s ease-in-out infinite" : undefined,
-            transformOrigin: "center bottom"
+            transformOrigin: "center bottom",
+            filter: isDead ? "grayscale(80%) opacity(0.5)" : isWilting ? "sepia(0.5) brightness(0.85)" : undefined,
           }}
         >
           {isDead ? (
             <span className="text-4xl">🪦</span>
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={getPlantImage(stage, plantType)}
-              alt={info.name}
-              className="w-16 h-16 object-contain"
-              style={{ filter: imageFilter }}
-            />
+            <PlantCharacter stage={stage} plantType={plantType} isWilting={isWilting} isDead={isDead} isHappy={isHappy} className="w-16 h-16" />
           )}
         </div>
         {particles.map(p => (
@@ -227,8 +221,7 @@ export default function PlantDisplay({
             {isDead ? (
               <div className="text-[96px] leading-none flex items-center justify-center w-full h-full">🪦</div>
             ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={getPlantImage(stage, plantType)} alt={info.name} className="w-full h-full object-contain" />
+              <PlantCharacter stage={stage} plantType={plantType} isWilting={isWilting} isDead={isDead} isHappy={isHappy} className="w-full h-full" />
             )}
           </div>
         </div>
