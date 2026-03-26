@@ -292,7 +292,7 @@ describe('graduatePlant', () => {
   });
 
   it('garden에 수집 기록 추가', () => {
-    const s = makeState({ stage: 'special', garden: [] });
+    const s = makeState({ stage: 'special', plantType: 'green', garden: [] });
     const next = graduatePlant(s);
     expect(next.garden).toHaveLength(1);
     expect(next.garden[0].type).toBe('green');

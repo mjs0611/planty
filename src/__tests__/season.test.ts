@@ -42,7 +42,7 @@ describe('getCurrentWeekStr', () => {
 });
 
 describe('PLANT_TYPE_ORDER', () => {
-  it('10가지 식물 타입 순서 유지', () => {
-    expect(PLANT_TYPE_ORDER).toEqual(['green', 'flower', 'cactus', 'sunflower', 'rose', 'bamboo', 'mushroom', 'succulent', 'clover', 'monstera']);
+  it('8가지 식물 타입 순서 유지 (mushroom, succulent 제외)', () => {
+    expect(PLANT_TYPE_ORDER).toEqual(['green', 'flower', 'cactus', 'sunflower', 'rose', 'bamboo', 'clover', 'monstera']);
   });
 });

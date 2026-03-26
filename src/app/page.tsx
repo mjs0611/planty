@@ -60,7 +60,13 @@ export default function HomePage() {
   const [plant, setPlant] = useState<PlantState | null>(null);
   const [justLeveledUp, setJustLeveledUp] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [activeTab, setActiveTab] = useState<'home' | 'garden' | 'profile'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'garden' | 'profile'>(() => {
+    if (typeof window !== 'undefined') {
+      const tab = new URLSearchParams(window.location.search).get('tab');
+      if (tab === 'garden' || tab === 'profile') return tab;
+    }
+    return 'home';
+  });
   const [growthEvent, setGrowthEvent] = useState<GrowthEvent | null>(null);
   const { theme, toggle } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
@@ -324,6 +330,7 @@ const { toast, openToast } = useToast();
         style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.05)" }}
       >
         <div className="flex items-center justify-between px-5 h-14">
+        <div className="flex items-center gap-2">
           <h1
             className="text-xl font-black tracking-tight"
             style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}
@@ -339,6 +346,7 @@ const { toast, openToast } = useToast();
               </button>
             )}
           </h1>
+        </div>
           <div className="flex items-center gap-1">
             <button
               onClick={toggle}
