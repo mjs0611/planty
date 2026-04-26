@@ -6,4 +6,4 @@ REPO="/Users/junseungmo/Documents/03_Resources/repos/planty"
 rm -rf "$REPO/.next"
 
 # Run static export build
-BUILD_TARGET=ait npx next build
+BUILD_TARGET=ait npx next build --webpack

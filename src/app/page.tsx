@@ -132,21 +132,25 @@ const { toast, openToast } = useToast();
   }, []);
 
   useEffect(() => {
+    // 온보딩 중에는 Onboarding 컴포넌트가 backEvent를 처리하므로 여기서 등록 안 함
+    if (!onboarded) return;
     let cleanup: (() => void) | undefined;
     (async () => {
       try {
-        const { graniteEvent } = await import("@apps-in-toss/web-framework");
+        const { graniteEvent, closeView } = await import("@apps-in-toss/web-framework");
         const sub = graniteEvent.addEventListener("backEvent", {
           onEvent: () => {
+            if (showShare) { setShowShare(false); return; }
             if (activeTab === 'garden' || activeTab === 'profile') { setActiveTab('home'); return; }
-            setShowShare(prev => (prev ? false : prev));
+            // 홈 탭 최초 화면에서 뒤로가기 → 미니앱 종료
+            closeView();
           },
         });
         cleanup = sub;
       } catch { /* 앱 외부 */ }
     })();
     return () => cleanup?.();
-  }, [activeTab]);
+  }, [activeTab, onboarded, showShare]);
 
   const handleMissionComplete = useCallback((slotId: string) => {
     const plant = plantRef.current;
@@ -324,7 +328,7 @@ const { toast, openToast } = useToast();
   }
 
   return (
-    <div className="min-h-screen nature-page pb-32">
+    <div className="min-h-screen nature-page pb-24">
       {/* ── Header ── */}
       <header className="fixed top-0 left-0 right-0 max-w-[430px] mx-auto z-50 toss-nav-bg backdrop-blur-xl"
         style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.05)" }}
@@ -674,50 +678,52 @@ const { toast, openToast } = useToast();
         </div>
       )}
 
-      {/* Bottom Tab Nav */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto z-40 toss-nav-bg backdrop-blur-xl px-4 pb-6 pt-3"
-        style={{
-          borderRadius: "2.5rem 2.5rem 0 0",
-          boxShadow: "0 -1px 0 rgba(0,0,0,0.05), 0 12px 32px -4px rgba(0,84,216,0.08)",
-        }}
-      >
-        <div className="flex justify-around items-center">
-          {([
-            { id: 'home', label: '홈', icon: (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9.75L12 3l9 6.75V21H15v-5.25H9V21H3V9.75z" />
-              </svg>
-            )},
-            { id: 'garden', label: '정원', icon: (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3C7 3 3 7.5 3 12c4 0 7-2 9-5 2 3 5 5 9 5 0-4.5-4-9-9-9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13M9 21h6" />
-              </svg>
-            )},
-            { id: 'profile', label: '프로필', icon: (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
-            )},
-          ] as const).map(({ id, label, icon }) => {
-            const active = activeTab === id;
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className="flex flex-col items-center justify-center px-5 py-2 rounded-full gap-0.5 text-[11px] font-bold transition-all duration-200 active:scale-90"
-                style={{
-                  color: active ? "var(--toss-primary)" : "var(--toss-on-surface-variant)",
-                  backgroundColor: active ? "rgba(0,78,203,0.08)" : "transparent",
-                  fontFamily: "var(--font-headline, sans-serif)",
-                }}
-              >
-                {icon}
-                {label}
-              </button>
-            );
-          })}
+      {/* Bottom Tab Nav — floating pill */}
+      <nav className="fixed bottom-4 left-0 right-0 px-4 max-w-[430px] mx-auto z-40">
+        <div
+          className="toss-nav-bg backdrop-blur-xl rounded-2xl border border-black/5 dark:border-white/5"
+          style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06)" }}
+        >
+          <div className="flex justify-around items-center h-[60px] px-2">
+            {([
+              { id: 'home' as const, label: '홈', renderIcon: (active: boolean) => (
+                <svg className="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9.75L12 3l9 6.75V21H15v-5.25H9V21H3V9.75z" />
+                </svg>
+              )},
+              { id: 'garden' as const, label: '정원', renderIcon: (active: boolean) => (
+                <svg className="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3C7 3 3 7.5 3 12c4 0 7-2 9-5 2 3 5 5 9 5 0-4.5-4-9-9-9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13M9 21h6" />
+                </svg>
+              )},
+              { id: 'profile' as const, label: '프로필', renderIcon: (active: boolean) => (
+                <svg className="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              )},
+            ]).map(({ id, label, renderIcon }) => {
+              const active = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className="w-full h-full flex flex-col items-center justify-center touch-manipulation"
+                >
+                  <div className={`flex flex-col items-center justify-center w-14 py-1 rounded-2xl transition-all duration-300 ${
+                    active
+                      ? "text-[#3182F6] bg-[#3182F6]/10"
+                      : "text-slate-400 dark:text-slate-500"
+                  }`}>
+                    {renderIcon(active)}
+                    <span className={`text-[10px] leading-none tracking-tight ${active ? "font-bold" : "font-medium"}`}>
+                      {label}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </nav>
     </div>

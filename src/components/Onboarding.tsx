@@ -41,6 +41,23 @@ export default function Onboarding({ onStart, plantType = "green" }: Props) {
     }
   }, [step]);
 
+  // step > 0일 때만 backEvent를 가로채서 이전 단계로 이동
+  // step === 0에서는 등록하지 않아 토스 기본 뒤로가기(앱 종료) 동작
+  useEffect(() => {
+    if (step === 0) return;
+    let cleanup: (() => void) | undefined;
+    (async () => {
+      try {
+        const { graniteEvent } = await import("@apps-in-toss/web-framework");
+        const sub = graniteEvent.addEventListener("backEvent", {
+          onEvent: () => { setStep(s => Math.max(s - 1, 0)); },
+        });
+        cleanup = sub;
+      } catch { /* 앱 외부 */ }
+    })();
+    return () => cleanup?.();
+  }, [step]);
+
   const goNext = () => setStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
   const goPrev = () => setStep(s => Math.max(s - 1, 0));
   const handleStart = () => onStart(name.trim() || undefined);
@@ -83,22 +100,8 @@ export default function Onboarding({ onStart, plantType = "green" }: Props) {
         ))}
       </div>
 
-      {/* Back button */}
-      <div className="h-10 flex items-center px-5">
-        <button
-          onClick={goPrev}
-          className="transition-opacity duration-200 p-1"
-          style={{
-            opacity: step === 0 ? 0 : 1,
-            pointerEvents: step === 0 ? "none" : "auto",
-            color: "#424656",
-          }}
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-      </div>
+      {/* 상단 여백 (토스 내비게이션 바 뒤로가기로 대체) */}
+      <div className="h-10" />
 
       {/* Slides */}
       <div className="flex-1 overflow-hidden">
