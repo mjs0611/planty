@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.venv-rembg/
+*.zip
+public/plants_raw/
+.granite/
