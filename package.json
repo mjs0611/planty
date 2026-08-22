@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "npm run dev",
+    "build": "bash scripts/build-ait.sh && ait build",
     "build:ait": "bash scripts/build-ait.sh",
     "bundle": "ait build",
     "start": "next start",
@@ -13,7 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@apps-in-toss/web-framework": "^2.6.1",
+    "@apps-in-toss/web-framework": "^3.0.5",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@toss/tds-mobile": "^2.3.0",
@@ -34,6 +34,7 @@
     "tailwindcss": "^4",
     "typescript": "^5.9.3",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.7",
+    "@apps-in-toss/devtools": "^3.0.5"
   }
 }
