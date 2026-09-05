@@ -3,7 +3,7 @@
  * 토스 앱 외부 환경에서도 graceful하게 동작하도록 try-catch + 폴백 처리
  */
 
-import type { HapticFeedbackType } from "@apps-in-toss/web-bridge";
+import type { HapticFeedbackType } from "@apps-in-toss/web-framework";
 
 // 토스 앱 환경 여부 (SSR 안전)
 export function isInTossApp(): boolean {
