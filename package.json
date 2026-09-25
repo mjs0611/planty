@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run dev",
+    "dev": "next dev",
     "build": "bash scripts/build-ait.sh && ait build",
     "build:ait": "bash scripts/build-ait.sh",
     "bundle": "ait build",
