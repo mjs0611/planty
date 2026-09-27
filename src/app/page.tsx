@@ -140,6 +140,10 @@ const { toast, openToast } = useToast();
         const { graniteEvent, closeView } = await import("@apps-in-toss/web-framework");
         const sub = graniteEvent.addEventListener("backEvent", {
           onEvent: () => {
+            // 열린 팝업을 먼저 닫는다 (탭 전환·앱 종료보다 우선)
+            if (milestone) { setMilestone(null); return; }
+            if (showPestModal) { setCreature(null); setShowPestModal(false); return; } // = handleCreatureResult(false, true)
+            if (editingName) { setEditingName(false); return; }
             if (showShare) { setShowShare(false); return; }
             if (activeTab === 'garden' || activeTab === 'profile') { setActiveTab('home'); return; }
             // 홈 탭 최초 화면에서 뒤로가기 → 미니앱 종료
@@ -150,7 +154,7 @@ const { toast, openToast } = useToast();
       } catch { /* 앱 외부 */ }
     })();
     return () => cleanup?.();
-  }, [activeTab, onboarded, showShare]);
+  }, [activeTab, onboarded, showShare, milestone, showPestModal, editingName]);
 
   const handleMissionComplete = useCallback((slotId: string) => {
     const plant = plantRef.current;
