@@ -1,4 +1,5 @@
 "use client";
+import PageBack from "@/components/PageBack";
 
 const SECTIONS = [
   // 제1장 총칙
@@ -166,6 +167,7 @@ export default function TermsPage() {
       className="min-h-screen px-5 py-10 max-w-lg mx-auto"
       style={{ backgroundColor: "var(--toss-surface, #fbf9f8)", color: "var(--toss-on-surface, #1b1c1c)" }}
     >
+      <PageBack />
       {/* Header */}
       <div className="mb-8">
         <p

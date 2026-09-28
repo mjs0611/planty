@@ -77,6 +77,7 @@ export default function HomePage() {
   const [nameInput, setNameInput] = useState('');
   const [milestone, setMilestone] = useState<{ streak: number; bonusXp: number } | null>(null);
   const triggeredCombosRef = useRef<Set<number>>(new Set());
+  const missionBackRef = useRef<(() => boolean) | null>(null);
 
   // 최신 값을 핸들러에서 참조하기 위한 refs (stale closure 방지)
   const plantRef = useRef<PlantState | null>(null);
@@ -145,6 +146,7 @@ const { toast, openToast } = useToast();
             if (showPestModal) { setCreature(null); setShowPestModal(false); return; } // = handleCreatureResult(false, true)
             if (editingName) { setEditingName(false); return; }
             if (showShare) { setShowShare(false); return; }
+            if (missionBackRef.current?.()) return; // 미션 인터랙션 모달
             if (activeTab === 'garden' || activeTab === 'profile') { setActiveTab('home'); return; }
             // 홈 탭 최초 화면에서 뒤로가기 → 미니앱 종료
             closeView();
@@ -580,6 +582,7 @@ const { toast, openToast } = useToast();
           onComplete={handleMissionComplete}
           totalCompleted={totalCompleted}
           total={total}
+          backRef={missionBackRef}
         />
       )}
 

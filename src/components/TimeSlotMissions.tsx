@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState, type MutableRefObject } from "react";
 import { TimeSlotMissions as TSM, TimeSlot, Mission } from "@/types/plant";
 import { getMissionById } from "@/lib/missions";
 import { getCurrentTimeSlot, getSlotMeta } from "@/lib/weather";
@@ -12,6 +12,8 @@ interface Props {
   onComplete: (slotId: string) => void;
   totalCompleted: number;
   total: number;
+  /** 토스 뒤로가기: 열린 미션 모달을 닫았으면 true */
+  backRef?: MutableRefObject<(() => boolean) | null>;
 }
 
 const ALL_SLOTS: TimeSlot[] = ["morning", "afternoon", "evening", "night"];
@@ -22,6 +24,7 @@ export default function TimeSlotMissions({
   onComplete,
   totalCompleted,
   total,
+  backRef,
 }: Props) {
   const currentSlot = getCurrentTimeSlot();
   const [activeSlot, setActiveSlot] = useState<TimeSlot>(currentSlot);
@@ -33,6 +36,15 @@ export default function TimeSlotMissions({
   const allSlotsCompleted = totalCompleted >= total;
 
   const [selected, setSelected] = useState<{ mission: Mission; slotId: string } | null>(null);
+  useEffect(() => {
+    if (!backRef) return;
+    backRef.current = () => {
+      if (!selected) return false;
+      setSelected(null);
+      return true;
+    };
+    return () => { backRef.current = null; };
+  });
 
   return (
     <div className="mx-4 mt-4 toss-card rounded-2xl overflow-hidden">
