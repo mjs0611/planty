@@ -2,6 +2,9 @@
 import { useState, useRef, useEffect } from "react";
 import { PlantType } from "@/types/plant";
 
+// page.tsx의 뒤로가기 처리가 온보딩 중에 부르는 단계 되돌리기
+export let onboardingBack: (() => boolean) | null = null;
+
 interface Props {
   onStart: (plantName?: string) => void;
   plantType?: PlantType;
@@ -41,21 +44,10 @@ export default function Onboarding({ onStart, plantType = "green" }: Props) {
     }
   }, [step]);
 
-  // step > 0일 때만 backEvent를 가로채서 이전 단계로 이동
-  // step === 0에서는 등록하지 않아 토스 기본 뒤로가기(앱 종료) 동작
+  // 뒤로가기: step > 0이면 이전 단계로. 처리 등록은 page.tsx의 installHistoryBack 한 곳에서 한다
   useEffect(() => {
-    if (step === 0) return;
-    let cleanup: (() => void) | undefined;
-    (async () => {
-      try {
-        const { graniteEvent } = await import("@apps-in-toss/web-framework");
-        const sub = graniteEvent.addEventListener("backEvent", {
-          onEvent: () => { setStep(s => Math.max(s - 1, 0)); },
-        });
-        cleanup = sub;
-      } catch { /* 앱 외부 */ }
-    })();
-    return () => cleanup?.();
+    onboardingBack = () => { if (step === 0) return false; setStep(s => Math.max(s - 1, 0)); return true; };
+    return () => { onboardingBack = null; };
   }, [step]);
 
   const goNext = () => setStep(s => Math.min(s + 1, TOTAL_STEPS - 1));

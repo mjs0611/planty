@@ -23,7 +23,8 @@ import AdButton from "@/components/AdButton";
 import ShareSheet from "@/components/ShareSheet";
 import BannerAd from "@/components/BannerAd";
 import Splash from "@/components/Splash";
-import Onboarding from "@/components/Onboarding";
+import Onboarding, { onboardingBack } from "@/components/Onboarding";
+import { installHistoryBack } from "@/lib/historyBack";
 import WeatherBanner from "@/components/WeatherBanner";
 import PlantMood from "@/components/PlantMood";
 import MiniWatering from "@/components/MiniWatering";
@@ -132,31 +133,19 @@ const { toast, openToast } = useToast();
     });
   }, []);
 
-  useEffect(() => {
-    // 온보딩 중에는 Onboarding 컴포넌트가 backEvent를 처리하므로 여기서 등록 안 함
-    if (!onboarded) return;
-    let cleanup: (() => void) | undefined;
-    (async () => {
-      try {
-        const { graniteEvent, closeView } = await import("@apps-in-toss/web-framework");
-        const sub = graniteEvent.addEventListener("backEvent", {
-          onEvent: () => {
-            // 열린 팝업을 먼저 닫는다 (탭 전환·앱 종료보다 우선)
-            if (milestone) { setMilestone(null); return; }
-            if (showPestModal) { setCreature(null); setShowPestModal(false); return; } // = handleCreatureResult(false, true)
-            if (editingName) { setEditingName(false); return; }
-            if (showShare) { setShowShare(false); return; }
-            if (missionBackRef.current?.()) return; // 미션 인터랙션 모달
-            if (activeTab === 'garden' || activeTab === 'profile') { setActiveTab('home'); return; }
-            // 홈 탭 최초 화면에서 뒤로가기 → 미니앱 종료
-            closeView();
-          },
-        });
-        cleanup = sub;
-      } catch { /* 앱 외부 */ }
-    })();
-    return () => cleanup?.();
-  }, [activeTab, onboarded, showShare, milestone, showPestModal, editingName]);
+  // 토스 뒤로가기(히스토리 방식): 온보딩 단계 → 팝업 → 미션 모달 → 탭 → 홈에서만 미니앱 종료
+  const historyBackRef = useRef<() => boolean>(() => false);
+  historyBackRef.current = () => {
+    if (!onboarded) return onboardingBack?.() ?? false;
+    if (milestone) { setMilestone(null); return true; }
+    if (showPestModal) { setCreature(null); setShowPestModal(false); return true; } // = handleCreatureResult(false, true)
+    if (editingName) { setEditingName(false); return true; }
+    if (showShare) { setShowShare(false); return true; }
+    if (missionBackRef.current?.()) return true; // 미션 인터랙션 모달
+    if (activeTab === 'garden' || activeTab === 'profile') { setActiveTab('home'); return true; }
+    return false;
+  };
+  useEffect(() => installHistoryBack(() => historyBackRef.current()), []);
 
   const handleMissionComplete = useCallback((slotId: string) => {
     const plant = plantRef.current;

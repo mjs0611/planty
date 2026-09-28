@@ -1,4 +1,3 @@
-import PageBack from "@/components/PageBack";
 
 export default function PrivacyPage() {
   return (
@@ -6,7 +5,6 @@ export default function PrivacyPage() {
       className="min-h-screen px-5 py-10 max-w-lg mx-auto"
       style={{ backgroundColor: "var(--toss-surface, #fbf9f8)", color: "var(--toss-on-surface, #1b1c1c)" }}
     >
-      <PageBack />
       {/* Header */}
       <div className="mb-8">
         <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: "var(--toss-primary, #004ecb)" }}>
