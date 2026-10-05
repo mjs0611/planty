@@ -330,20 +330,20 @@ const { toast, openToast } = useToast();
   return (
     <div className="min-h-screen nature-page pb-24">
       {/* ── Header ── */}
-      <header className="fixed top-0 left-0 right-0 max-w-[430px] mx-auto z-50 toss-nav-bg backdrop-blur-xl"
+      <header className="sticky top-0 max-w-[430px] mx-auto z-50 toss-nav-bg backdrop-blur-xl"
         style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.05)" }}
       >
-        <div className="flex items-center justify-between px-5 h-14">
-        <div className="flex items-center gap-2">
+        <div className="flex items-start justify-between gap-3 px-5 py-3 min-h-14">
+        <div className="flex-1 min-w-0">
           <h1
-            className="text-xl font-black tracking-tight"
+            className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xl font-black tracking-tight leading-tight"
             style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}
           >
             플랜티
             {plant.name && (
               <button
                 onClick={() => { setNameInput(plant.name ?? ''); setEditingName(true); }}
-                className="text-sm font-medium ml-2"
+                className="max-w-full text-left text-sm font-medium [overflow-wrap:anywhere]"
                 style={{ color: "var(--toss-primary)" }}
               >
                 &quot;{plant.name}&quot;
@@ -351,9 +351,10 @@ const { toast, openToast } = useToast();
             )}
           </h1>
         </div>
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1">
             <button
               onClick={toggle}
+              aria-label={theme === "dark" ? "밝은 테마로 바꾸기" : "어두운 테마로 바꾸기"}
               className="p-2 rounded-full transition-colors"
               style={{ color: "var(--toss-on-surface-variant)" }}
             >
@@ -361,6 +362,7 @@ const { toast, openToast } = useToast();
             </button>
             <button
               onClick={() => { setShowShare(true); logEvent("share_open", { stage: plant.stage }); }}
+              aria-label="공유 화면 열기"
               className="relative p-2 rounded-full transition-colors"
               style={{ color: "var(--toss-on-surface-variant)" }}
             >
@@ -392,9 +394,6 @@ const { toast, openToast } = useToast();
           )}
         </div>
       </header>
-      {/* header spacer */}
-      <div className="h-[88px]" />
-
       {saveFailed && (
         <section className="mx-4 mt-3 p-4 toss-card rounded-2xl" role="status" aria-label="기기 저장 안내">
           <p className="text-base font-semibold" style={{ color: "var(--toss-on-surface)" }}>기기에 기록을 저장하지 못했어요</p>
