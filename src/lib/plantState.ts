@@ -402,7 +402,6 @@ export function recoverPlant(state: PlantState): PlantState {
     isDead: false,
     isWilting: false,
     lastCareDate: today,
-    lastWateringTime: new Date().toISOString(),
     streak,
     maxStreak: Math.max(state.maxStreak, streak),
     todayMissionsDate: today,

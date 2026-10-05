@@ -44,12 +44,14 @@ describe('복귀 기록 보존', () => {
   it('무료 돌봄은 같은 식물의 상태만 회복하고 XP·광고·접속 보상을 추가하지 않는다', () => {
     const old = returningState({ isDead: true, stats: { water: 20, sunlight: 85, health: 0 },
       adLastWatched: '2026-10-05T00:00:00.000Z', lastLoginBonusDate: '2026-10-05',
+      lastWateringTime: '2026-10-01T00:00:00.000Z',
       completedMissions: ['morning_water'], todayMissionsDate: '2026-10-05' });
     const recovered = recoverPlant(old);
     expect(recovered).toMatchObject({ stage: 'flower', plantType: 'cactus', name: '초록이', xp: 42,
       garden: collection, maxStreak: 12, totalDaysAlive: 20, streak: 1,
       stats: { water: 60, sunlight: 85, health: 60 }, isDead: false, isWilting: false,
       adLastWatched: old.adLastWatched, lastLoginBonusDate: old.lastLoginBonusDate,
+      lastWateringTime: old.lastWateringTime,
       completedMissions: old.completedMissions, lastCareDate: '2026-10-05' });
     expect(old.isDead).toBe(true);
     expect(old.stats.health).toBe(0);
