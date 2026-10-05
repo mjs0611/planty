@@ -413,7 +413,7 @@ const { toast, openToast } = useToast();
       {(plant.isDead || plant.isWilting) && (
         <section className="mx-4 mt-3 p-5 toss-card rounded-2xl" aria-labelledby="recovery-title">
           <h2 id="recovery-title" className="text-lg font-bold" style={{ color: "var(--toss-on-surface)" }}>다시 이어서 키워요</h2>
-          <p className="text-base mt-2 mb-4 leading-relaxed" style={{ color: "var(--toss-on-surface-variant)" }}>식물의 성장과 모아둔 정원 {plant.garden.length}그루는 그대로예요. 무료로 돌보면 다시 건강해져요.</p>
+          <p className="text-base mt-2 mb-4 leading-relaxed" style={{ color: "var(--toss-on-surface-variant)" }}>식물의 성장과 정원 {plant.garden.length}그루는 그대로예요.</p>
           <Button display="full" color="primary" size="large" onClick={handleRecover}>무료로 다시 돌보기</Button>
         </section>
       )}
