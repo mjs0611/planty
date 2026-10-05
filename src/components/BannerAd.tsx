@@ -58,6 +58,16 @@ export default function BannerAd({ className }: { className?: string }) {
     if (!containerRef.current || !isSupported || !AD_GROUP_ID) return;
     destroyRef.current?.();
     destroyRef.current = null;
+    let active = true;
+    let failed = false;
+    const hide = () => {
+      if (!active || failed) return;
+      failed = true;
+      setVisible(false); // Hide the label and host container together on no-fill/error.
+      const destroy = destroyRef.current;
+      destroyRef.current = null;
+      try { destroy?.(); } catch { /* The empty wrapper stays hidden. */ }
+    };
     tryInitialize();
     try {
       const result = TossAds.attachBanner(AD_GROUP_ID, containerRef.current, {
@@ -65,15 +75,16 @@ export default function BannerAd({ className }: { className?: string }) {
         tone: "blackAndWhite",
         variant: "expanded",
         callbacks: {
-          onNoFill: () => setVisible(false),
-          onAdFailedToRender: () => setVisible(false),
+          onNoFill: hide,
+          onAdFailedToRender: hide,
         },
       });
-      destroyRef.current = result.destroy;
+      if (failed) result.destroy(); else destroyRef.current = result.destroy;
     } catch {
-      setVisible(false);
+      hide();
     }
     return () => {
+      active = false;
       destroyRef.current?.();
       destroyRef.current = null;
     };
@@ -94,8 +105,9 @@ export default function BannerAd({ className }: { className?: string }) {
   }
 
   return (
-    <div className={`rounded-2xl overflow-hidden ${className ?? ""}`}>
+    <section aria-label="광고" className={`rounded-2xl overflow-hidden border ${className ?? ""}`} style={{ borderColor: "var(--toss-outline-variant)" }}>
+      <p className="px-3 py-1 text-xs" style={{ color: "var(--toss-on-surface-variant)" }}>광고</p>
       <div ref={containerRef} />
-    </div>
+    </section>
   );
 }

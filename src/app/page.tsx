@@ -5,7 +5,7 @@ import { PlantState, GrowthEvent } from "@/types/plant";
 import {
   loadState, completeMission, applyAdBoost, applyMiniWatering,
   claimLoginBonus, graduatePlant, recoverPlant, saveState,
-  STAGE_INFO, isAdAvailable, getAllMissionIds,
+  STAGE_INFO, isAdAvailable, getAllMissionIds, getPlantAdOwnerKey,
   checkStreakMilestone, applyStreakMilestone,
   applyCreatureReward, applyCreaturePenalty, applyComboBonus,
   applyTapStatBoost,
@@ -32,7 +32,7 @@ import TimeSlotMissions from "@/components/TimeSlotMissions";
 import GrowthEventPopup from "@/components/GrowthEventPopup";
 import GardenView from "@/components/GardenView";
 import FloatingCreature, { Creature } from "@/components/FloatingCreature";
-import PestAdModal from "@/components/PestAdModal";
+import PestModal from "@/components/PestModal";
 import ProfilePage from "@/components/ProfilePage";
 import { useTheme } from "@/lib/theme";
 
@@ -79,6 +79,18 @@ export default function HomePage() {
   const [milestone, setMilestone] = useState<{ streak: number; bonusXp: number } | null>(null);
   const triggeredCombosRef = useRef<Set<number>>(new Set());
   const missionBackRef = useRef<(() => boolean) | null>(null);
+  const adBackRef = useRef<(() => void) | null>(null);
+  const [adDialogOpen, setAdDialogOpen] = useState(false);
+  const registerAdBack = useCallback((close: () => void) => {
+    adBackRef.current = close;
+    setAdDialogOpen(true);
+    return () => {
+      if (adBackRef.current !== close) return;
+      adBackRef.current = null;
+      setAdDialogOpen(false);
+    };
+  }, []);
+  useEffect(() => { if (activeTab !== 'home') adBackRef.current?.(); }, [activeTab]);
 
   // 최신 값을 핸들러에서 참조하기 위한 refs (stale closure 방지)
   const plantRef = useRef<PlantState | null>(null);
@@ -138,8 +150,9 @@ const { toast, openToast } = useToast();
   const historyBackRef = useRef<() => boolean>(() => false);
   historyBackRef.current = () => {
     if (!onboarded) return onboardingBack?.() ?? false;
+    if (adBackRef.current) { adBackRef.current(); return true; }
     if (milestone) { setMilestone(null); return true; }
-    if (showPestModal) { setCreature(null); setShowPestModal(false); return true; } // = handleCreatureResult(false, true)
+    if (showPestModal) { creatureRef.current = null; setCreature(null); setShowPestModal(false); return true; }
     if (editingName) { setEditingName(false); return true; }
     if (showShare) { setShowShare(false); return true; }
     if (missionBackRef.current?.()) return true; // 미션 인터랙션 모달
@@ -190,16 +203,29 @@ const { toast, openToast } = useToast();
     setPlant(finalState);
   }, [openToast, triggerLevelUp]);
 
-  const handleAdComplete = useCallback(() => {
+  const getAdOwnerKey = useCallback(() => getPlantAdOwnerKey(plantRef.current), []);
+  const canReceiveGrowthAdReward = useCallback(() => {
     const plant = plantRef.current;
-    if (!plant) return;
+    return !!plant && !plant.isDead && isAdAvailable(plant);
+  }, []);
+  const isGrowthAdEligible = useCallback(() => {
+    const plant = plantRef.current;
+    const weather = getCurrentWeather();
+    return !!plant && !plant.isDead && isAdAvailable(plant) && !['cloudy', 'rainy', 'moonlight'].includes(weather);
+  }, []);
+  const handleAdComplete = useCallback((ownerKey: string) => {
+    const plant = plantRef.current;
+    if (!plant || getPlantAdOwnerKey(plant) !== ownerKey || !canReceiveGrowthAdReward()) return false;
     const { state: newState, xpGained } = applyAdBoost(plant);
+    if (xpGained === 0) return false;
     const leveledUp = newState.stage !== plant.stage;
+    plantRef.current = newState;
     setPlant(newState);
     if (leveledUp) triggerLevelUp(newState.stage);
     else { haptic("success"); openToast(`📺 광고 보상! 성장 XP +${xpGained}`); }
     logEvent("ad_rewarded", { stage: plant.stage });
-  }, [openToast, triggerLevelUp]);
+    return true;
+  }, [openToast, triggerLevelUp, canReceiveGrowthAdReward]);
 
   const handleMiniWater = useCallback(() => {
     const plant = plantRef.current;
@@ -267,10 +293,12 @@ const { toast, openToast } = useToast();
   const handleCreatureResult = useCallback((caught: boolean, skipPenalty = false) => {
     const plant = plantRef.current;
     const creature = creatureRef.current;
-    if (!plant || !creature) { setCreature(null); setShowPestModal(false); return; }
+    if (!plant || !creature) { creatureRef.current = null; setCreature(null); setShowPestModal(false); return; }
+    creatureRef.current = null; // Consume this creature before any callbacks or re-render.
     if (caught) {
       const newState = applyCreatureReward(plant, creature.xpReward, creature.statEffect);
       const leveledUp = newState.stage !== plant.stage;
+      plantRef.current = newState;
       setPlant(newState);
       if (leveledUp) triggerLevelUp(newState.stage);
       else {
@@ -280,6 +308,7 @@ const { toast, openToast } = useToast();
       }
     } else if (!skipPenalty && creature.isPest && creature.penalty) {
       const newState = applyCreaturePenalty(plant, creature.penalty);
+      plantRef.current = newState;
       setPlant(newState);
       haptic("error");
       openToast(`🐛 해충이 식물을 갉아먹었어요! 건강 -8`);
@@ -288,9 +317,9 @@ const { toast, openToast } = useToast();
     setShowPestModal(false);
   }, [openToast, triggerLevelUp]);
 
-  const handleCreatureSpawn = useCallback((c: Creature) => setCreature(c), []);
+  const handleCreatureSpawn = useCallback((c: Creature) => { creatureRef.current = c; setCreature(c); }, []);
   useCreatureSpawner({
-    isActive: activeTab === 'home' && !!plant,
+    isActive: activeTab === 'home' && !!plant && !adDialogOpen && !showPestModal,
     isDead: plant?.isDead ?? false,
     creature,
     onSpawn: handleCreatureSpawn,
@@ -512,9 +541,6 @@ const { toast, openToast } = useToast();
           {/* Floating Actions */}
           {!plant.isDead && (
             <>
-              <div className="absolute top-1/2 left-4 -translate-y-1/2 z-10">
-                <AdButton onAdComplete={handleAdComplete} adAvailable={adAvailable} adLastWatched={plant.adLastWatched} compact weatherDisabled={isPhotosynthesisDisabled} />
-              </div>
               <div className="absolute top-1/2 right-4 -translate-y-1/2 z-10">
                 <MiniWatering plant={plant} onWater={handleMiniWater} compact />
               </div>
@@ -575,6 +601,11 @@ const { toast, openToast } = useToast();
 
       </div>
 
+      {!plant.isDead && <div className="mx-4 mt-3">
+        <AdButton onAdComplete={handleAdComplete} getOwnerKey={getAdOwnerKey} isEligible={isGrowthAdEligible} canReward={canReceiveGrowthAdReward}
+          registerBack={registerAdBack} adAvailable={adAvailable} adLastWatched={plant.adLastWatched} weatherDisabled={isPhotosynthesisDisabled} />
+      </div>}
+
       {/* Banner Ad (Moved up for better visibility) */}
       <div className="mx-4 mt-3 mb-1"><BannerAd /></div>
 
@@ -607,10 +638,9 @@ const { toast, openToast } = useToast();
       <GrowthEventPopup event={growthEvent} onDismiss={() => setGrowthEvent(null)} />
       {showShare && <ShareSheet plant={plant} onClose={() => setShowShare(false)} />}
 
-      {/* 해충 광고 모달 */}
+      {/* 해충은 광고 없이 무료로 보냅니다. */}
       {showPestModal && (
-        <PestAdModal
-          onCatch={() => handleCreatureResult(true)}
+        <PestModal
           onClose={() => handleCreatureResult(false, true)}
         />
       )}

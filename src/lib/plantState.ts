@@ -315,9 +315,16 @@ export function completeMission(
 }
 
 export function applyAdBoost(state: PlantState): { state: PlantState; xpGained: number } {
+  if (state.isDead || !isAdAvailable(state)) return { state, xpGained: 0 };
   let next = applyXp(state, AD_XP_REWARD);
   next = { ...next, adLastWatched: new Date().toISOString() };
   return { state: next, xpGained: AD_XP_REWARD };
+}
+
+// Stable through normal care/name changes, different after graduating to a new plant.
+export function getPlantAdOwnerKey(state: PlantState | null): string {
+  if (!state) return "";
+  return `${state.plantType}:${state.garden.length}:${state.garden[state.garden.length - 1]?.completedAt ?? "first"}`;
 }
 
 export function applyMiniWatering(state: PlantState): { state: PlantState; xpGained: number } | null {

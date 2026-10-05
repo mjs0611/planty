@@ -16,25 +16,30 @@ export interface Creature {
 interface Props {
   creature: Creature;
   onTap: (caught: boolean) => void;
-  onPestTap?: () => void; // 해충 탭 시 광고 모달 트리거
+  onPestTap?: () => void;
 }
 
 export default function FloatingCreature({ creature, onTap, onPestTap }: Props) {
   const [tapped, setTapped] = useState(false);
   const [expired, setExpired] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handledRef = useRef(false);
 
   useEffect(() => {
     timerRef.current = setTimeout(() => {
       setExpired(true);
-      setTimeout(() => onTap(false), 400);
+      if (handledRef.current) return;
+      handledRef.current = true;
+      settleRef.current = setTimeout(() => onTap(false), 400);
     }, creature.duration);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); if (settleRef.current) clearTimeout(settleRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [creature.id]);
 
   const handleTap = () => {
-    if (tapped || expired) return;
+    if (handledRef.current || tapped || expired) return;
+    handledRef.current = true;
     if (creature.isPest && onPestTap) {
       // 해충: 타이머만 멈추고 모달에 위임
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -44,14 +49,14 @@ export default function FloatingCreature({ creature, onTap, onPestTap }: Props) 
     }
     if (timerRef.current) clearTimeout(timerRef.current);
     setTapped(true);
-    setTimeout(() => onTap(true), 300);
+    settleRef.current = setTimeout(() => onTap(true), 300);
   };
 
   const dismissed = tapped || expired;
 
   return (
-    <div
-      className="absolute z-20 cursor-pointer select-none"
+    <button type="button" aria-label={creature.isPest ? "해충 무료 보내기" : `${creature.label} 잡기`}
+      className="absolute z-20 cursor-pointer select-none min-h-11 min-w-11"
       style={{
         left: `${creature.x}%`,
         top: '18%',
@@ -64,10 +69,10 @@ export default function FloatingCreature({ creature, onTap, onPestTap }: Props) 
     >
       <span className="text-4xl drop-shadow-lg">{creature.emoji}</span>
       {creature.isPest && !dismissed && (
-        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] text-red-500 font-bold whitespace-nowrap animate-pulse bg-white/80 dark:bg-black/60 px-1 rounded">
-          잡아요!
-        </div>
+        <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-sm text-red-600 font-bold whitespace-nowrap bg-white dark:bg-black px-2 py-1 rounded">
+          무료 보내기
+        </span>
       )}
-    </div>
+    </button>
   );
 }
