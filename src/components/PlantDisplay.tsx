@@ -112,11 +112,12 @@ export default function PlantDisplay({
   // onTapStatBoost가 호출될 때마다 행복 애니메이션
   const prevTapRef = useRef(0);
   const handleTapWithHappy = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (isDead) return;
     prevTapRef.current = Date.now();
     handlePlantTap(e);
     // 100ms 후 부모가 state 업데이트 → 건강이 실제로 올랐을 가능성이 높으면 happy 트리거
     setTimeout(() => triggerHappy(), 80);
-  }, [handlePlantTap, triggerHappy]);
+  }, [isDead, handlePlantTap, triggerHappy]);
 
   useEffect(() => {
     if (!particles.length) return;
@@ -139,14 +140,10 @@ export default function PlantDisplay({
             backgroundColor: "rgba(0,100,255,0.06)",
             animation: !isDead && !isWilting ? "planet-float 4.5s ease-in-out infinite" : undefined,
             transformOrigin: "center bottom",
-            filter: isDead ? "grayscale(80%) opacity(0.5)" : isWilting ? "sepia(0.5) brightness(0.85)" : undefined,
+            filter: isDead || isWilting ? "sepia(0.5) brightness(0.85)" : undefined,
           }}
         >
-          {isDead ? (
-            <span className="text-4xl">🪦</span>
-          ) : (
-            <PlantCharacter stage={stage} plantType={plantType} isWilting={isWilting} isDead={isDead} isHappy={isHappy} className="w-16 h-16" />
-          )}
+          <PlantCharacter stage={stage} plantType={plantType} isWilting={isWilting || isDead} isDead={false} isHappy={isHappy} className="w-16 h-16" />
         </div>
         {particles.map(p => (
           <span
@@ -204,25 +201,21 @@ export default function PlantDisplay({
         <div ref={squishRef} className="w-full h-full">
           <div
             className={`relative w-full h-full transition-all duration-500 ${
-              isDead ? "grayscale opacity-40 rotate-[15deg]" :
+              isDead ? "opacity-80" :
               !isWilting && !celebrating && !isHappy ? "animate-planet-float" : ""
             }`}
             style={{
-              filter: isDead ? undefined :
+              filter: isDead ? "sepia(0.6) brightness(0.85)" :
                 isHappy ? "brightness(1.15) drop-shadow(0 0 14px rgba(63,224,161,0.7))" :
                 isWilting ? "sepia(0.6) brightness(0.85)" :
                 isMilestone ? "brightness(1.35) drop-shadow(0 0 12px rgba(255,255,255,0.6))" :
                 undefined,
-              animation: isWilting && !isDead ? "wilt 3s ease-in-out infinite" :
+              animation: isWilting || isDead ? "wilt 3s ease-in-out infinite" :
                 celebrating ? "levelup-burst 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" :
                 isHappy ? "happy-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)" : undefined,
             }}
           >
-            {isDead ? (
-              <div className="text-[96px] leading-none flex items-center justify-center w-full h-full">🪦</div>
-            ) : (
-              <PlantCharacter stage={stage} plantType={plantType} isWilting={isWilting} isDead={isDead} isHappy={isHappy} className="w-full h-full" />
-            )}
+            <PlantCharacter stage={stage} plantType={plantType} isWilting={isWilting || isDead} isDead={false} isHappy={isHappy} className="w-full h-full" />
           </div>
         </div>
 
@@ -252,7 +245,7 @@ export default function PlantDisplay({
       </div>
 
       {/* Graduation */}
-      {stage === "special" && (
+      {stage === "special" && !isDead && (
         <div className="w-full px-4 flex flex-col items-center gap-2">
           <p className="text-sm font-semibold text-yellow-500">✨ 황금 식물 달성!</p>
           {onGraduate && (

@@ -4,7 +4,7 @@ import { Button, Toast } from "@toss/tds-mobile";
 import { PlantState, GrowthEvent } from "@/types/plant";
 import {
   loadState, completeMission, applyAdBoost, applyMiniWatering,
-  claimLoginBonus, graduatePlant, resetPlant,
+  claimLoginBonus, graduatePlant, recoverPlant, saveState,
   STAGE_INFO, isAdAvailable, getAllMissionIds,
   checkStreakMilestone, applyStreakMilestone,
   applyCreatureReward, applyCreaturePenalty, applyComboBonus,
@@ -87,7 +87,7 @@ export default function HomePage() {
   useEffect(() => { creatureRef.current = creature; }, [creature]);
 
 const { toast, openToast } = useToast();
-  useDebouncedSave(plant);
+  const { saveFailed, retrySave } = useDebouncedSave(plant);
 
   const triggerLevelUp = useCallback((newStage: PlantState["stage"]) => {
     setJustLeveledUp(true);
@@ -97,7 +97,8 @@ const { toast, openToast } = useToast();
   }, [openToast]);
 
   useEffect(() => {
-    const isOnboarded = localStorage.getItem(ONBOARDED_KEY) === "true";
+    let isOnboarded = false;
+    try { isOnboarded = localStorage.getItem(ONBOARDED_KEY) === "true"; } catch { /* Core care remains available without storage. */ }
     setOnboarded(isOnboarded);
     const { state, shieldConsumed } = loadState();
     const bonusResult = claimLoginBonus(state);
@@ -122,7 +123,7 @@ const { toast, openToast } = useToast();
   }, []);
 
   const handleOnboardingStart = useCallback((plantName?: string) => {
-    localStorage.setItem(ONBOARDED_KEY, "true");
+    try { localStorage.setItem(ONBOARDED_KEY, "true"); } catch { /* The save status explains persistence limits. */ }
     setOnboarded(true);
     setPlant(prev => {
       if (!prev) return prev;
@@ -243,13 +244,17 @@ const { toast, openToast } = useToast();
     setPlant(newState);
   }, [openToast, triggerLevelUp]);
 
-  const handleReset = useCallback(() => {
+  const handleRecover = useCallback(() => {
     const plant = plantRef.current;
-    if (!plant?.isDead) return;
-    logEvent("plant_reset", { prev_stage: plant.stage });
-    triggeredCombosRef.current.clear();
-    setPlant(resetPlant());
-  }, []);
+    if (!plant || (!plant.isDead && !plant.isWilting)) return;
+    const recovered = recoverPlant(plant);
+    plantRef.current = recovered; // Repeated taps before a render do not repeat recovery.
+    saveState(recovered);
+    setPlant(recovered);
+    haptic("success");
+    openToast("다시 건강해졌어요. 이어서 키워봐요!");
+    logEvent("plant_reset", { prev_stage: plant.stage, mode: "free_recovery", garden_count: plant.garden.length });
+  }, [openToast]);
 
   const handleSaveName = useCallback(() => {
     const plant = plantRef.current;
@@ -390,6 +395,14 @@ const { toast, openToast } = useToast();
       {/* header spacer */}
       <div className="h-[88px]" />
 
+      {saveFailed && (
+        <section className="mx-4 mt-3 p-4 toss-card rounded-2xl" role="status" aria-label="기기 저장 안내">
+          <p className="text-base font-semibold" style={{ color: "var(--toss-on-surface)" }}>기기에 기록을 저장하지 못했어요</p>
+          <p className="text-sm mt-1 mb-3 leading-relaxed" style={{ color: "var(--toss-on-surface-variant)" }}>계속 돌볼 수 있지만, 앱을 닫으면 이번 변화가 사라질 수 있어요.</p>
+          <Button display="full" color="light" size="large" onClick={() => retrySave()}>저장 다시 시도</Button>
+        </section>
+      )}
+
       {/* Garden Tab */}
       {activeTab === 'garden' && (
         <GardenView plant={plant} />
@@ -397,6 +410,14 @@ const { toast, openToast } = useToast();
 
       {/* Home Tab */}
       {activeTab === 'home' && <>
+
+      {(plant.isDead || plant.isWilting) && (
+        <section className="mx-4 mt-3 p-5 toss-card rounded-2xl" aria-labelledby="recovery-title">
+          <h2 id="recovery-title" className="text-lg font-bold" style={{ color: "var(--toss-on-surface)" }}>다시 이어서 키워요</h2>
+          <p className="text-base mt-2 mb-4 leading-relaxed" style={{ color: "var(--toss-on-surface-variant)" }}>식물의 성장과 모아둔 정원 {plant.garden.length}그루는 그대로예요. 무료로 돌보면 다시 건강해져요.</p>
+          <Button display="full" color="primary" size="large" onClick={handleRecover}>무료로 다시 돌보기</Button>
+        </section>
+      )}
 
       {/* Environment Bar */}
       <div className="mx-4 mt-2 flex items-center justify-between rounded-full px-5 py-2 toss-card bg-opacity-60 backdrop-blur-md" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
@@ -465,7 +486,7 @@ const { toast, openToast } = useToast();
         </div>
         {/* 단계 설명 */}
         <p className="text-center text-xs px-5 pt-0.5 pb-0" style={{ color: "var(--toss-on-surface-variant)" }}>
-          {plant.isDead ? "💀 식물이 떠났어요..." : plant.isWilting ? "😢 식물이 힘들어요!" : STAGE_INFO[plant.stage].description}
+          {plant.isDead || plant.isWilting ? "쉬고 있던 식물을 다시 돌봐주세요" : STAGE_INFO[plant.stage].description}
         </p>
 
         {/* Name Display */}
@@ -485,7 +506,7 @@ const { toast, openToast } = useToast();
             xp={plant.xp}
             xpRequired={plant.xpRequired}
             justLeveledUp={justLeveledUp}
-            onGraduate={plant.stage === 'special' ? handleGraduate : undefined}
+            onGraduate={plant.stage === 'special' && !plant.isDead ? handleGraduate : undefined}
             onComboTap={handleComboTap}
             onTapStatBoost={handleTapStatBoost}
           />
@@ -553,11 +574,6 @@ const { toast, openToast } = useToast();
         </div>
 
 
-        {plant.isDead && (
-          <div className="px-5 pb-4">
-            <Button display="full" color="dark" size="large" onClick={handleReset}>새 씨앗 심기 🌱</Button>
-          </div>
-        )}
       </div>
 
       {/* Banner Ad (Moved up for better visibility) */}
@@ -584,7 +600,7 @@ const { toast, openToast } = useToast();
           plant={plant}
           theme={theme}
           onToggleTheme={toggle}
-          onReset={handleReset}
+          onRecover={handleRecover}
         />
       )}
 

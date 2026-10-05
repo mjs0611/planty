@@ -8,7 +8,7 @@ interface Props {
   plant: PlantState;
   theme: "light" | "dark";
   onToggleTheme: () => void;
-  onReset: () => void;
+  onRecover: () => void;
 }
 
 function StatCard({ label, value, emoji }: { label: string; value: string | number; emoji: string }) {
@@ -56,7 +56,7 @@ function SettingRow({
   );
 }
 
-export default function ProfilePage({ plant, theme, onToggleTheme, onReset }: Props) {
+export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: Props) {
   const typeInfo = PLANT_TYPE_INFO[plant.plantType];
   const stageInfo = STAGE_INFO[plant.stage];
   const progress = Math.round((plant.xp / plant.xpRequired) * 100);
@@ -136,10 +136,10 @@ export default function ProfilePage({ plant, theme, onToggleTheme, onReset }: Pr
       </div>
 
       {/* Danger zone */}
-      {plant.isDead && (
+      {(plant.isDead || plant.isWilting) && (
         <div className="mx-4 mt-2">
-          <Button display="full" color="dark" size="large" onClick={onReset}>
-            🌱 새 씨앗 심기
+          <Button display="full" color="primary" size="large" onClick={onRecover}>
+            무료로 다시 돌보기
           </Button>
         </div>
       )}

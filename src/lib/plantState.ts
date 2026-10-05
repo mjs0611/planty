@@ -1,7 +1,7 @@
 import { PlantState, PlantStage, PlantStats, MissionResult, PlantType, GrowthEvent } from "@/types/plant";
 import { getTodayMissions, getMissionById, parseSlotId } from "./missions";
 import { getCurrentWeather, getCurrentTimeSlot, weatherBonusMultiplier } from "./weather";
-import { getCurrentSeason, seasonXpMultiplier, GROWTH_EVENTS, PLANT_TYPE_ORDER, getCurrentWeekStr } from "./season";
+import { getCurrentSeason, seasonXpMultiplier, GROWTH_EVENTS, PLANT_TYPE_ORDER, PLANT_TYPE_INFO, getCurrentWeekStr } from "./season";
 import { format, isYesterday, parseISO, differenceInCalendarDays } from "date-fns";
 import { STORAGE_KEY, AD_XP_REWARD, MINI_WATERING_COOLDOWN_MS, AD_COOLDOWN_MS, MOOD_INTERACT_COOLDOWN_MS } from "./constants";
 
@@ -29,6 +29,20 @@ export const STAGE_INFO: Record<PlantStage, { name: string; description: string 
 };
 
 const MAX_SHIELDS = 2;
+
+function calendarDate(value: unknown): string | null {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = parseISO(value);
+  return Number.isFinite(parsed.getTime()) && format(parsed, 'yyyy-MM-dd') === value ? value : null;
+}
+
+function nonNegative(value: unknown, fallback = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : fallback;
+}
+
+function isPlantType(value: unknown): value is PlantType {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(PLANT_TYPE_INFO, value);
+}
 
 function applyXp(state: PlantState, xp: number): PlantState {
   let { stage, xpRequired } = state;
@@ -92,8 +106,27 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { state: getInitialState(), shieldConsumed: false };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let state: any = JSON.parse(raw);
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== 'object' || Array.isArray(saved)) throw new Error('Invalid plant state');
+    let state = { ...getInitialState(), ...saved } as PlantState;
+
+    // Keep valid legacy records while filling missing state fields.
+    if (!STAGE_ORDER.includes(state.stage)) state.stage = 'seed';
+    state.xp = nonNegative(state.xp);
+    state.xpRequired = XP_REQUIRED[state.stage as PlantStage];
+    state.stats = {
+      water: Math.min(100, nonNegative(state.stats?.water, 80)),
+      sunlight: Math.min(100, nonNegative(state.stats?.sunlight, 80)),
+      health: Math.min(100, nonNegative(state.stats?.health, 80)),
+    };
+    state.maxStreak = nonNegative(state.maxStreak, nonNegative(state.streak));
+    state.streak = nonNegative(state.streak);
+    state.streakShields = Math.min(MAX_SHIELDS, nonNegative(state.streakShields));
+    state.totalDaysAlive = nonNegative(state.totalDaysAlive);
+    state.completedMissions = Array.isArray(state.completedMissions) ? state.completedMissions.filter((id: unknown) => typeof id === 'string') : [];
+    state.lastCareDate = calendarDate(state.lastCareDate);
+    state.isDead = state.isDead === true;
+    state.isWilting = state.isWilting === true;
 
     // Migrate old PlantType (6종 → 3종)
     const LEGACY_TYPE_MAP: Record<string, PlantType> = {
@@ -103,11 +136,10 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
       state.plantType = LEGACY_TYPE_MAP[state.plantType];
     }
     if (Array.isArray(state.garden)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      state.garden = state.garden.map((g: any) => ({
+      state.garden = state.garden.filter(g => g && typeof g === 'object').map(g => ({
         ...g,
         type: LEGACY_TYPE_MAP[g.type] ?? g.type,
-      }));
+      })).filter(g => isPlantType(g.type));
     }
 
     // Migrate missing fields
@@ -116,8 +148,8 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
     if (!state.lastLoginBonusDate) state.lastLoginBonusDate = null;
     if (!state.lastWateringTime) state.lastWateringTime = null;
     if (!state.lastMoodInteractTime) state.lastMoodInteractTime = null;
-    if (!state.plantType) state.plantType = 'green';
-    if (!state.garden) state.garden = [];
+    if (!isPlantType(state.plantType)) state.plantType = 'green';
+    if (!Array.isArray(state.garden)) state.garden = [];
     if (state.streakShields === undefined) state.streakShields = 0;
     if (!state.lastShieldRefillWeek) state.lastShieldRefillWeek = null;
     if (state.tapHealthToday === undefined) state.tapHealthToday = 0;
@@ -128,21 +160,22 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
     const today = format(new Date(), 'yyyy-MM-dd');
 
     // Migrate old flat todayMissions → timeSlotMissions
-    if (!state.timeSlotMissions) {
+    if (!saved.timeSlotMissions) {
       state.timeSlotMissions = getTodayMissions(state.todayMissionsDate ?? today);
       state.completedMissions = [];
     }
     // Migrate missing night slot
-    if (!state.timeSlotMissions.night) {
+    if (!state.timeSlotMissions || !(['morning', 'afternoon', 'evening', 'night'] as const).every(slot => Array.isArray(state.timeSlotMissions[slot]))) {
       state.timeSlotMissions = getTodayMissions(state.todayMissionsDate ?? today);
     }
 
     // Refresh missions on new day
-    if (state.todayMissionsDate !== today) {
+    const newDay = state.todayMissionsDate !== today;
+    if (newDay) {
       // 스탯 일일 감소 (지난 날 수만큼 누적 적용, 최대 7일)
-      const prevDate = state.todayMissionsDate;
+      const prevDate = calendarDate(state.todayMissionsDate);
       const decayDays = prevDate
-        ? Math.min(differenceInCalendarDays(new Date(), parseISO(prevDate)), 7)
+        ? Math.max(0, Math.min(differenceInCalendarDays(new Date(), parseISO(prevDate)), 7))
         : 1;
       state.stats = {
         water:    Math.max(0, state.stats.water    - 15 * decayDays),
@@ -153,15 +186,18 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
       state.timeSlotMissions = getTodayMissions(today);
       state.todayMissionsDate = today;
       state.completedMissions = [];
-      state.totalDaysAlive = (state.totalDaysAlive ?? 0) + 1;
+      state.totalDaysAlive = (state.totalDaysAlive ?? 0) + (decayDays > 0 ? 1 : 0);
     }
 
     // Weekly shield refill
     state = refreshShieldIfNewWeek(state);
 
-    // Streak & wilting/dead
+    // isDead stays compatible with older saves: it now means free recovery is needed.
     let shieldConsumed = false;
-    if (state.lastCareDate && state.lastCareDate !== today) {
+    if (state.isDead) {
+      state.streak = 0;
+      state.isWilting = false;
+    } else if (state.lastCareDate && state.lastCareDate !== today) {
       const lastDate = parseISO(state.lastCareDate);
       const daysSince = differenceInCalendarDays(new Date(), lastDate);
 
@@ -169,7 +205,7 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
         state.streak = 0;
         state.isDead = true;
         state.isWilting = false;
-      } else if (daysSince === 2) {
+      } else if (daysSince === 2 && newDay) {
         if ((state.streakShields ?? 0) > 0) {
           state.streakShields -= 1;
           state.isWilting = false;
@@ -180,7 +216,7 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
           state.isWilting = true;
           state.isDead = false;
         }
-      } else {
+      } else if (daysSince !== 2) {
         state.isWilting = false;
         state.isDead = false;
       }
@@ -195,9 +231,14 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
   }
 }
 
-export function saveState(state: PlantState): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+export function saveState(state: PlantState): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function completeMission(
@@ -280,7 +321,7 @@ export function applyAdBoost(state: PlantState): { state: PlantState; xpGained: 
 }
 
 export function applyMiniWatering(state: PlantState): { state: PlantState; xpGained: number } | null {
-  if (!isMiniWateringAvailable(state)) return null;
+  if (state.isDead || !isMiniWateringAvailable(state)) return null;
   const newStats = { ...state.stats, water: Math.min(100, state.stats.water + 8) };
   let next = applyXp({ ...state, stats: newStats }, 10);
   next = { ...next, lastWateringTime: new Date().toISOString() };
@@ -345,8 +386,38 @@ export function graduatePlant(state: PlantState): PlantState {
   };
 }
 
-export function resetPlant(): PlantState {
-  return getInitialState();
+/** Free return care restores the same plant; it never grants XP or needs an ad. */
+export function recoverPlant(state: PlantState): PlantState {
+  if (!state.isDead && !state.isWilting) return state;
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const newDay = state.todayMissionsDate !== today;
+  const streak = state.lastCareDate === today ? state.streak : 1;
+  return {
+    ...state,
+    stats: {
+      water: Math.max(state.stats.water, 60),
+      sunlight: Math.max(state.stats.sunlight, 60),
+      health: Math.max(state.stats.health, 60),
+    },
+    isDead: false,
+    isWilting: false,
+    lastCareDate: today,
+    lastWateringTime: new Date().toISOString(),
+    streak,
+    maxStreak: Math.max(state.maxStreak, streak),
+    todayMissionsDate: today,
+    timeSlotMissions: newDay ? getTodayMissions(today) : state.timeSlotMissions,
+    completedMissions: newDay ? [] : state.completedMissions,
+  };
+}
+
+/** Legacy restart callers must provide the state so collections and daily limits survive. */
+export function resetPlant(state: PlantState): PlantState {
+  return {
+    ...recoverPlant(state),
+    stage: 'seed', xp: 0, xpRequired: XP_REQUIRED.seed,
+    stats: { water: 80, sunlight: 80, health: 80 },
+  };
 }
 
 export const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100];

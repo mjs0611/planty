@@ -6,7 +6,7 @@ export interface PlantMood {
 }
 
 export function getPlantMood(state: PlantState, completedToday: number): PlantMood {
-  if (state.isDead) return { emoji: '🥀', message: '다시 심어줘요...' };
+  if (state.isDead) return { emoji: '🥀', message: '쉬었어요. 다시 돌봐줘요' };
   if (state.isWilting) return { emoji: '🥺', message: '돌봐줘요, 힘들어요...' };
 
   if (state.streak >= 30) return { emoji: '🏆', message: '우린 최고의 파트너예요!' };

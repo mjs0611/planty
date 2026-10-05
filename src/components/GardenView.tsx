@@ -14,7 +14,7 @@ interface Props {
 export default function GardenView({ plant }: Props) {
   const typeInfo = PLANT_TYPE_INFO[plant.plantType];
   const currentStageIdx = STAGE_ORDER.indexOf(plant.stage);
-  const growthPct = plant.isDead ? 0 : Math.round(((currentStageIdx) / (STAGE_ORDER.length - 1)) * 100);
+  const growthPct = Math.round(((currentStageIdx) / (STAGE_ORDER.length - 1)) * 100);
 
   const lockedTypes = PLANT_TYPE_ORDER.filter(
     t => !plant.garden.some(g => g.type === t) && t !== plant.plantType
@@ -108,7 +108,7 @@ export default function GardenView({ plant }: Props) {
               {plant.name || typeInfo.name}
             </h3>
             <p className="text-sm mt-0.5" style={{ color: "var(--toss-on-surface-variant)" }}>
-              {plant.isDead ? "💀 시들었어요" : STAGE_INFO[plant.stage].name}
+              {plant.isDead ? `${STAGE_INFO[plant.stage].name} · 다시 돌볼 수 있어요` : STAGE_INFO[plant.stage].name}
             </p>
 
             {/* 성장 진행 바 */}
@@ -137,11 +137,11 @@ export default function GardenView({ plant }: Props) {
           <div className="absolute -right-3 -bottom-3 w-28 h-28 opacity-90">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={getPlantImage(plant.isDead ? "seed" : plant.stage, plant.plantType)}
+              src={getPlantImage(plant.stage, plant.plantType)}
               alt={typeInfo.name}
               className="w-full h-full object-contain"
               style={{
-                filter: plant.isWilting && !plant.isDead ? "sepia(0.6) brightness(0.85)" : undefined,
+                filter: plant.isWilting || plant.isDead ? "sepia(0.6) brightness(0.85)" : undefined,
               }}
             />
           </div>
