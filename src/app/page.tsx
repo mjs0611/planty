@@ -9,6 +9,7 @@ import {
   checkStreakMilestone, applyStreakMilestone,
   applyCreatureReward, applyCreaturePenalty, applyComboBonus,
   applyTapStatBoost,
+  getGrowthFeedback, getGardenSummary, getPlantImage, type GrowthFeedback,
 } from "@/lib/plantState";
 import { getMissionById, parseSlotId } from "@/lib/missions";
 import { haptic, logEvent } from "@/lib/bridge";
@@ -25,7 +26,6 @@ import BannerAd from "@/components/BannerAd";
 import Splash from "@/components/Splash";
 import Onboarding, { onboardingBack } from "@/components/Onboarding";
 import { installHistoryBack } from "@/lib/historyBack";
-import WeatherBanner from "@/components/WeatherBanner";
 import PlantMood from "@/components/PlantMood";
 import MiniWatering from "@/components/MiniWatering";
 import TimeSlotMissions from "@/components/TimeSlotMissions";
@@ -35,6 +35,7 @@ import FloatingCreature, { Creature } from "@/components/FloatingCreature";
 import PestModal from "@/components/PestModal";
 import ProfilePage from "@/components/ProfilePage";
 import { useTheme } from "@/lib/theme";
+import GrowthProgress from "@/components/GrowthProgress";
 
 // XP bar with mount animation (Stitch 9)
 function HeroXpBar({ xp, xpRequired }: { xp: number; xpRequired: number }) {
@@ -60,6 +61,7 @@ function HeroXpBar({ xp, xpRequired }: { xp: number; xpRequired: number }) {
 export default function HomePage() {
   const [plant, setPlant] = useState<PlantState | null>(null);
   const [justLeveledUp, setJustLeveledUp] = useState(false);
+  const [careFeedback, setCareFeedback] = useState<GrowthFeedback | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [activeTab, setActiveTab] = useState<'home' | 'garden' | 'profile'>(() => {
     if (typeof window !== 'undefined') {
@@ -69,6 +71,10 @@ export default function HomePage() {
     return 'home';
   });
   const [growthEvent, setGrowthEvent] = useState<GrowthEvent | null>(null);
+  const navigateTab = useCallback((tab: 'home' | 'garden' | 'profile') => {
+    setActiveTab(tab);
+    window.scrollTo(0, 0);
+  }, []);
   const { theme, toggle } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   const [onboarded, setOnboarded] = useState(true);
@@ -108,9 +114,21 @@ const { toast, openToast } = useToast();
     setTimeout(() => setJustLeveledUp(false), 2500);
   }, [openToast]);
 
+  // Synchronous ownership keeps care, combo XP and rapid taps from overwriting one another.
+  const commitPlant = useCallback((next: PlantState, source?: string) => {
+    const before = plantRef.current;
+    plantRef.current = next;
+    setPlant(next);
+    if (source && before) {
+      const feedback = getGrowthFeedback(before, next, source);
+      if (feedback) setCareFeedback(feedback);
+    }
+  }, []);
+
   useEffect(() => {
     let isOnboarded = false;
     try { isOnboarded = localStorage.getItem(ONBOARDED_KEY) === "true"; } catch { /* Core care remains available without storage. */ }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore browser storage after hydration.
     setOnboarded(isOnboarded);
     const { state, shieldConsumed } = loadState();
     const bonusResult = claimLoginBonus(state);
@@ -123,7 +141,8 @@ const { toast, openToast } = useToast();
       setTimeout(() => setMilestone({ streak: ms.milestone, bonusXp: ms.bonusXp }), 2500);
     }
 
-    setPlant(finalState);
+    plantRef.current = state;
+    commitPlant(finalState, '접속 보너스');
     if (shieldConsumed) {
       setTimeout(() => openToast(`🛡 스트릭 실드를 사용했어요! 연속 기록이 유지됐습니다`), 1000);
     }
@@ -137,18 +156,13 @@ const { toast, openToast } = useToast();
   const handleOnboardingStart = useCallback((plantName?: string) => {
     try { localStorage.setItem(ONBOARDED_KEY, "true"); } catch { /* The save status explains persistence limits. */ }
     setOnboarded(true);
-    setPlant(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        ...(plantName ? { name: plantName } : {}),
-      };
-    });
-  }, []);
+    const current = plantRef.current;
+    if (current) commitPlant({ ...current, ...(plantName ? { name: plantName } : {}) });
+  }, [commitPlant]);
 
   // 토스 뒤로가기(히스토리 방식): 온보딩 단계 → 팝업 → 미션 모달 → 탭 → 홈에서만 미니앱 종료
   const historyBackRef = useRef<() => boolean>(() => false);
-  historyBackRef.current = () => {
+  useEffect(() => { historyBackRef.current = () => {
     if (!onboarded) return onboardingBack?.() ?? false;
     if (adBackRef.current) { adBackRef.current(); return true; }
     if (milestone) { setMilestone(null); return true; }
@@ -156,9 +170,9 @@ const { toast, openToast } = useToast();
     if (editingName) { setEditingName(false); return true; }
     if (showShare) { setShowShare(false); return true; }
     if (missionBackRef.current?.()) return true; // 미션 인터랙션 모달
-    if (activeTab === 'garden' || activeTab === 'profile') { setActiveTab('home'); return true; }
+    if (activeTab === 'garden' || activeTab === 'profile') { navigateTab('home'); return true; }
     return false;
-  };
+  }; }, [onboarded, milestone, showPestModal, editingName, showShare, activeTab, navigateTab]);
   useEffect(() => installHistoryBack(() => historyBackRef.current()), []);
 
   const handleMissionComplete = useCallback((slotId: string) => {
@@ -171,6 +185,7 @@ const { toast, openToast } = useToast();
     const prevStage = plant.stage;
     const result = completeMission(plant, slotId, mission.statEffect, mission.xpReward);
     const { state: newState, luckyBonus, weatherBonus, shieldBonus, xpGained, growthEvent: evt } = result;
+    if (newState === plant) return;
     const shieldTag = shieldBonus ? " 🛡" : "";
 
     if (newState.stage !== prevStage) {
@@ -200,8 +215,8 @@ const { toast, openToast } = useToast();
     }
 
     logEvent("mission_complete", { mission_id: missionId, xp_gained: xpGained, lucky_bonus: luckyBonus });
-    setPlant(finalState);
-  }, [openToast, triggerLevelUp]);
+    commitPlant(finalState, '미션 돌봄');
+  }, [openToast, triggerLevelUp, commitPlant]);
 
   const getAdOwnerKey = useCallback(() => getPlantAdOwnerKey(plantRef.current), []);
   const canReceiveGrowthAdReward = useCallback(() => {
@@ -219,13 +234,12 @@ const { toast, openToast } = useToast();
     const { state: newState, xpGained } = applyAdBoost(plant);
     if (xpGained === 0) return false;
     const leveledUp = newState.stage !== plant.stage;
-    plantRef.current = newState;
-    setPlant(newState);
+    commitPlant(newState, '광고 보상');
     if (leveledUp) triggerLevelUp(newState.stage);
     else { haptic("success"); openToast(`📺 광고 보상! 성장 XP +${xpGained}`); }
     logEvent("ad_rewarded", { stage: plant.stage });
     return true;
-  }, [openToast, triggerLevelUp, canReceiveGrowthAdReward]);
+  }, [openToast, triggerLevelUp, canReceiveGrowthAdReward, commitPlant]);
 
   const handleMiniWater = useCallback(() => {
     const plant = plantRef.current;
@@ -233,29 +247,33 @@ const { toast, openToast } = useToast();
     const result = applyMiniWatering(plant);
     if (!result) return;
     haptic("success");
-    openToast("💧 물을 줬어요! +10 XP");
-    setPlant(result.state);
-  }, [openToast]);
+    if (result.state.stage !== plant.stage) triggerLevelUp(result.state.stage);
+    else openToast("💧 물을 줬어요! +10 XP");
+    commitPlant(result.state, '물주기');
+  }, [openToast, triggerLevelUp, commitPlant]);
 
   const handleTapStatBoost = useCallback(() => {
     const plant = plantRef.current;
     if (!plant) return;
     const { state: newState, gained } = applyTapStatBoost(plant);
     if (!gained) return;
-    setPlant(newState);
-  }, []);
+    commitPlant(newState);
+  }, [commitPlant]);
 
   const handleGraduate = useCallback(() => {
     const plant = plantRef.current;
     if (!plant) return;
     const newState = graduatePlant(plant);
+    if (newState === plant) return;
     const typeInfo = PLANT_TYPE_INFO[newState.plantType];
     haptic("confetti");
     openToast(`🎓 졸업! 새 식물 "${typeInfo.name}" 시작!`);
     logEvent("plant_graduate", { from_type: plant.plantType, to_type: newState.plantType, garden_count: newState.garden.length });
     triggeredCombosRef.current.clear();
-    setPlant(newState);
-  }, [openToast]);
+    setCareFeedback(null);
+    commitPlant(newState);
+    navigateTab('garden');
+  }, [openToast, commitPlant, navigateTab]);
 
   const handleComboTap = useCallback((combo: number) => {
     const plant = plantRef.current;
@@ -267,8 +285,8 @@ const { toast, openToast } = useToast();
     const newState = applyComboBonus(plant, ms.xp);
     if (newState.stage !== plant.stage) triggerLevelUp(newState.stage);
     else openToast(`${ms.message} +${ms.xp} XP`);
-    setPlant(newState);
-  }, [openToast, triggerLevelUp]);
+    commitPlant(newState, '식물 쓰다듬기');
+  }, [openToast, triggerLevelUp, commitPlant]);
 
   const handleRecover = useCallback(() => {
     const plant = plantRef.current;
@@ -276,19 +294,19 @@ const { toast, openToast } = useToast();
     const recovered = recoverPlant(plant);
     plantRef.current = recovered; // Repeated taps before a render do not repeat recovery.
     saveState(recovered);
-    setPlant(recovered);
+    commitPlant(recovered);
     haptic("success");
     openToast("다시 건강해졌어요. 이어서 키워봐요!");
     logEvent("plant_reset", { prev_stage: plant.stage, mode: "free_recovery", garden_count: plant.garden.length });
-  }, [openToast]);
+  }, [openToast, commitPlant]);
 
   const handleSaveName = useCallback(() => {
     const plant = plantRef.current;
     if (!plant) return;
     const trimmed = nameInput.trim().slice(0, 12);
-    setPlant({ ...plant, name: trimmed || undefined });
+    commitPlant({ ...plant, name: trimmed || undefined });
     setEditingName(false);
-  }, [nameInput]);
+  }, [nameInput, commitPlant]);
 
   const handleCreatureResult = useCallback((caught: boolean, skipPenalty = false) => {
     const plant = plantRef.current;
@@ -298,8 +316,7 @@ const { toast, openToast } = useToast();
     if (caught) {
       const newState = applyCreatureReward(plant, creature.xpReward, creature.statEffect);
       const leveledUp = newState.stage !== plant.stage;
-      plantRef.current = newState;
-      setPlant(newState);
+      commitPlant(newState, '정원 친구');
       if (leveledUp) triggerLevelUp(newState.stage);
       else {
         haptic("success");
@@ -308,14 +325,13 @@ const { toast, openToast } = useToast();
       }
     } else if (!skipPenalty && creature.isPest && creature.penalty) {
       const newState = applyCreaturePenalty(plant, creature.penalty);
-      plantRef.current = newState;
-      setPlant(newState);
+      commitPlant(newState);
       haptic("error");
       openToast(`🐛 해충이 식물을 갉아먹었어요! 건강 -8`);
     }
     setCreature(null);
     setShowPestModal(false);
-  }, [openToast, triggerLevelUp]);
+  }, [openToast, triggerLevelUp, commitPlant]);
 
   const handleCreatureSpawn = useCallback((c: Creature) => { creatureRef.current = c; setCreature(c); }, []);
   useCreatureSpawner({
@@ -332,15 +348,15 @@ const { toast, openToast } = useToast();
       totalCompleted: allMissionIds.filter(id => plant.completedMissions.includes(id)).length,
       total: allMissionIds.length,
     };
-  }, [plant?.timeSlotMissions, plant?.completedMissions]);
+  }, [plant]);
 
-  const adAvailable = useMemo(() => plant ? isAdAvailable(plant) : false, [plant?.adLastWatched]);
+  const adAvailable = useMemo(() => plant ? isAdAvailable(plant) : false, [plant]);
 
   const streakBadge = useMemo(() =>
     !plant ? null :
     plant.streak >= 30 ? "🏆 월간 마스터" :
     plant.streak >= 7  ? "⭐ 주간 달성"   : null,
-  [plant?.streak]);
+  [plant]);
 
   const currentWeather = getCurrentWeather();
   const isPhotosynthesisDisabled = currentWeather === 'cloudy' || currentWeather === 'rainy' || currentWeather === 'moonlight';
@@ -433,7 +449,7 @@ const { toast, openToast } = useToast();
 
       {/* Garden Tab */}
       {activeTab === 'garden' && (
-        <GardenView plant={plant} />
+        <GardenView plant={plant} onCare={() => navigateTab('home')} />
       )}
 
       {/* Home Tab */}
@@ -444,6 +460,7 @@ const { toast, openToast } = useToast();
           <h2 id="recovery-title" className="text-lg font-bold" style={{ color: "var(--toss-on-surface)" }}>다시 이어서 키워요</h2>
           <p className="text-base mt-2 mb-4 leading-relaxed" style={{ color: "var(--toss-on-surface-variant)" }}>식물의 성장과 정원 {plant.garden.length}그루는 그대로예요.</p>
           <Button display="full" color="primary" size="large" onClick={handleRecover}>무료로 다시 돌보기</Button>
+          {plant.garden.length > 0 && <button className="mt-3 text-sm font-semibold" onClick={() => navigateTab('garden')} style={{ color: "var(--toss-primary)" }}>모아둔 정원 보기</button>}
         </section>
       )}
 
@@ -489,7 +506,7 @@ const { toast, openToast } = useToast();
           />
         )}
         {/* 식물 이름 + 상태 뱃지 */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4 pb-0">
           <div className="flex items-center gap-2">
             <span
               className="text-[10px] font-black px-2 py-0.5 rounded-full"
@@ -505,7 +522,7 @@ const { toast, openToast } = useToast();
             )}
           </div>
           <button
-            className="text-sm font-medium"
+            className="max-w-full text-left text-sm font-medium [overflow-wrap:anywhere]"
             style={{ color: "var(--toss-primary)" }}
             onClick={() => { setNameInput(plant.name ?? ''); setEditingName(true); }}
           >
@@ -519,7 +536,7 @@ const { toast, openToast } = useToast();
 
         {/* Name Display */}
         {plant.name && (
-          <p className="text-center text-xl font-black mt-2 tracking-tight" style={{ color: "var(--toss-on-surface)" }}>
+          <p className="text-center text-xl font-black mt-2 px-5 tracking-tight [overflow-wrap:anywhere]" style={{ color: "var(--toss-on-surface)" }}>
             {plant.name}
           </p>
         )}
@@ -546,6 +563,9 @@ const { toast, openToast } = useToast();
               </div>
             </>
           )}
+        </div>
+        <div className="px-5 pb-3">
+          <GrowthProgress plant={plant} feedback={careFeedback} />
         </div>
         {/* XP bar */}
         {!plant.isDead && plant.stage !== 'special' && (
@@ -600,6 +620,19 @@ const { toast, openToast } = useToast();
 
 
       </div>
+
+      <button className="home-garden-link mx-4 mt-3 toss-card rounded-2xl" onClick={() => navigateTab('garden')}>
+        <div className="garden-miniatures" aria-hidden="true">
+          {(plant.garden.length ? plant.garden.slice(-3).map(p => p.type) : [plant.plantType]).map((type, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={i} src={getPlantImage('special', type)} alt="" width={40} height={40} />
+          ))}
+        </div>
+        <div className="min-w-0 text-left">
+          <p className="font-bold">{plant.garden.length ? `정원 ${plant.garden.length}그루 · ${getGardenSummary(plant).collectedTypes}종` : '첫 황금 식물을 모아봐요'}</p>
+          <p className="growth-detail">내 정원 보기 →</p>
+        </div>
+      </button>
 
       {!plant.isDead && <div className="mx-4 mt-3">
         <AdButton onAdComplete={handleAdComplete} getOwnerKey={getAdOwnerKey} isEligible={isGrowthAdEligible} canReward={canReceiveGrowthAdReward}
@@ -696,7 +729,6 @@ const { toast, openToast } = useToast();
               }}
               onFocus={e => { e.currentTarget.style.boxShadow = "0 0 0 2px rgba(0,78,203,0.25)"; }}
               onBlur={e => { e.currentTarget.style.boxShadow = "none"; }}
-              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
             />
             <div className="flex gap-2 mt-4">
@@ -748,7 +780,7 @@ const { toast, openToast } = useToast();
               return (
                 <button
                   key={id}
-                  onClick={() => setActiveTab(id)}
+                  onClick={() => navigateTab(id)}
                   className="w-full h-full flex flex-col items-center justify-center touch-manipulation"
                 >
                   <div className={`flex flex-col items-center justify-center w-14 py-1 rounded-2xl transition-all duration-300 ${

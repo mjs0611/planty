@@ -1,10 +1,9 @@
 "use client";
 import { Button } from "@toss/tds-mobile";
 import { PlantStage, PlantType } from "@/types/plant";
-import { STAGE_INFO } from "@/lib/plantState";
 import { PLANT_TYPE_INFO } from "@/lib/season";
 import PlantCharacter from "./PlantCharacter";
-import { COMBO_MILESTONE_NUMBERS, COMBO_MILESTONES } from "@/lib/constants";
+import { COMBO_MILESTONE_NUMBERS } from "@/lib/constants";
 import { CutePopper, CuteHeart, CuteSparkle } from "./icons";
 import { useEffect, useState, useRef, useCallback } from "react";
 
@@ -25,15 +24,15 @@ interface Props {
 type Particle = { id: number; x: number; y: number; node: React.ReactNode; big: boolean };
 
 export default function PlantDisplay({
-  stage, plantType, isWilting, isDead, xp, xpRequired,
+  stage, plantType, isWilting, isDead,
   justLeveledUp, onGraduate, onComboTap, onTapStatBoost, compact = false,
 }: Props) {
   const [celebrating, setCelebrating] = useState(false);
   const [isHappy, setIsHappy] = useState(false);
-  const info = STAGE_INFO[stage];
   const typeInfo = PLANT_TYPE_INFO[plantType];
 
   const [combo, setCombo] = useState(0);
+  const comboRef = useRef(0);
   const [comboBadgeKey, setComboBadgeKey] = useState(0);
   const [isMilestone, setIsMilestone] = useState(false);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -43,6 +42,7 @@ export default function PlantDisplay({
 
   useEffect(() => {
     if (justLeveledUp) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Start the brief celebration when care changes the stage.
       setCelebrating(true);
       const t = setTimeout(() => setCelebrating(false), 2000);
       return () => clearTimeout(t);
@@ -70,28 +70,27 @@ export default function PlantDisplay({
 
     if (comboResetRef.current) clearTimeout(comboResetRef.current);
 
-    setCombo(prev => {
-      const next = prev + 1;
-      const isMil = COMBO_MILESTONE_NUMBERS.has(next);
-      const node = isMil ? <CuteSparkle className="w-8 h-8 drop-shadow-md" color="#FDE047" /> : <CuteHeart className="w-5 h-5 drop-shadow-sm" />;
-      setParticles(p => [...p, { id: Date.now() + Math.random(), x, y, node, big: isMil }]);
+    const next = comboRef.current + 1;
+    comboRef.current = next;
+    setCombo(next);
+    const isMil = COMBO_MILESTONE_NUMBERS.has(next);
+    const node = isMil ? <CuteSparkle className="w-8 h-8 drop-shadow-md" color="#FDE047" /> : <CuteHeart className="w-5 h-5 drop-shadow-sm" />;
+    setParticles(p => [...p, { id: Date.now() + Math.random(), x, y, node, big: isMil }]);
 
-      setComboBadgeKey(k => k + 1);
+    setComboBadgeKey(k => k + 1);
 
-      if (isMil) {
-        setIsMilestone(true);
-        setTimeout(() => setIsMilestone(false), 500);
-      }
+    if (isMil) {
+      setIsMilestone(true);
+      setTimeout(() => setIsMilestone(false), 500);
+    }
 
-      onComboTap?.(next);
-      return next;
-    });
+    onComboTap?.(next);
 
     // 매 탭마다 건강 증가 시도
     onTapStatBoost?.();
 
     doSquish();
-    comboResetRef.current = setTimeout(() => setCombo(0), 1500);
+    comboResetRef.current = setTimeout(() => { comboRef.current = 0; setCombo(0); }, 1500);
   }, [isDead, doSquish, onComboTap, onTapStatBoost]);
 
   // 외부에서 건강 증가가 일어났을 때 행복 애니메이션 트리거
@@ -250,7 +249,7 @@ export default function PlantDisplay({
           <p className="text-sm font-semibold text-yellow-500">✨ 황금 식물 달성!</p>
           {onGraduate && (
             <Button display="full" color="primary" size="large" onClick={onGraduate}>
-              🎓 졸업하고 새 식물 키우기
+              정원에 모으고 새 식물 키우기
             </Button>
           )}
         </div>

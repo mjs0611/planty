@@ -19,10 +19,10 @@ export default function MissionCard({ mission, isCompleted, onSelect }: Props) {
     <button
       onClick={() => !isCompleted && onSelect()}
       disabled={isCompleted}
-      className="w-full flex items-center justify-between px-6 py-[18px] text-left transition-colors duration-150 active:scale-[0.99]"
+      className="w-full flex items-center justify-between gap-3 px-6 py-[18px] text-left transition-colors duration-150 active:scale-[0.99]"
     >
       {/* Icon + text */}
-      <div className="flex items-center gap-4" style={{ opacity: isCompleted ? 0.55 : 1 }}>
+      <div className="flex flex-1 min-w-0 items-center gap-3" style={{ opacity: isCompleted ? 0.55 : 1 }}>
         <div
           className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0"
           style={{
@@ -31,7 +31,7 @@ export default function MissionCard({ mission, isCompleted, onSelect }: Props) {
         >
           {mission.emoji}
         </div>
-        <div>
+        <div className="min-w-0 [overflow-wrap:anywhere]">
           <p
             className="text-[16px] font-bold leading-snug"
             style={{
@@ -61,13 +61,12 @@ export default function MissionCard({ mission, isCompleted, onSelect }: Props) {
           <span>완료</span>
         </div>
       ) : (
-        <button
+        <span
           className="text-[13px] font-bold px-4 py-2 rounded-[8px] flex-shrink-0 active:scale-95 transition-transform"
           style={{ backgroundColor: "#f2f3f4", color: "#4e5968" }}
-          onClick={e => { e.stopPropagation(); onSelect(); }}
         >
           하기
-        </button>
+        </span>
       )}
     </button>
   );

@@ -1,6 +1,6 @@
 import { PlantState, PlantStage, PlantStats, MissionResult, PlantType, GrowthEvent } from "@/types/plant";
-import { getTodayMissions, getMissionById, parseSlotId } from "./missions";
-import { getCurrentWeather, getCurrentTimeSlot, weatherBonusMultiplier } from "./weather";
+import { getTodayMissions, parseSlotId } from "./missions";
+import { getCurrentWeather, weatherBonusMultiplier } from "./weather";
 import { getCurrentSeason, seasonXpMultiplier, GROWTH_EVENTS, PLANT_TYPE_ORDER, PLANT_TYPE_INFO, getCurrentWeekStr } from "./season";
 import { format, isYesterday, parseISO, differenceInCalendarDays } from "date-fns";
 import { STORAGE_KEY, AD_XP_REWARD, MINI_WATERING_COOLDOWN_MS, AD_COOLDOWN_MS, MOOD_INTERACT_COOLDOWN_MS } from "./constants";
@@ -56,9 +56,44 @@ function applyXp(state: PlantState, xp: number): PlantState {
   return { ...state, xp: finalXp, xpRequired, stage };
 }
 
-function nextPlantType(current: PlantType): PlantType {
+export function nextPlantType(current: PlantType): PlantType {
   const idx = PLANT_TYPE_ORDER.indexOf(current);
   return PLANT_TYPE_ORDER[(idx + 1) % PLANT_TYPE_ORDER.length];
+}
+
+/** Goals use the same thresholds and rotation as care and graduation. No new save fields. */
+export function getGrowthGoal(state: PlantState) {
+  if (state.stage === 'special') return null;
+  return {
+    nextStage: STAGE_ORDER[STAGE_ORDER.indexOf(state.stage) + 1],
+    remainingXp: Math.max(0, XP_REQUIRED[state.stage] - state.xp),
+  };
+}
+
+export interface GrowthFeedback {
+  source: string;
+  plantType: PlantType;
+  fromStage: PlantStage;
+  toStage: PlantStage;
+  xpGained: number;
+}
+
+export function getGrowthFeedback(before: PlantState, after: PlantState, source: string): GrowthFeedback | null {
+  if (before.plantType !== after.plantType || before.garden.length !== after.garden.length) return null;
+  const totalXp = (state: PlantState) => STAGE_ORDER.slice(0, STAGE_ORDER.indexOf(state.stage))
+    .reduce((sum, stage) => sum + XP_REQUIRED[stage], state.xp);
+  const xpGained = totalXp(after) - totalXp(before);
+  if (xpGained <= 0) return null;
+  return { source, plantType: after.plantType, fromStage: before.stage, toStage: after.stage, xpGained };
+}
+
+export function getGardenSummary(state: PlantState) {
+  return {
+    collectedTypes: new Set(state.garden.map(plant => plant.type)).size,
+    completedPlants: state.garden.length,
+    nextType: nextPlantType(state.plantType),
+    maxStreak: Math.max(state.maxStreak, state.streak, ...state.garden.map(plant => nonNegative(plant.maxStreak))),
+  };
 }
 
 function refreshShieldIfNewWeek(state: PlantState): PlantState {
@@ -128,9 +163,9 @@ export function loadState(): { state: PlantState; shieldConsumed: boolean } {
     state.isDead = state.isDead === true;
     state.isWilting = state.isWilting === true;
 
-    // Migrate old PlantType (6종 → 3종)
+    // Only retired types need migration. Current types must survive reconnects.
     const LEGACY_TYPE_MAP: Record<string, PlantType> = {
-      cherry: 'flower', sunflower: 'flower', rose: 'flower', bamboo: 'green',
+      cherry: 'flower',
     };
     if (state.plantType && LEGACY_TYPE_MAP[state.plantType]) {
       state.plantType = LEGACY_TYPE_MAP[state.plantType];
