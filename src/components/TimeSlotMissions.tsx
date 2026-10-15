@@ -47,17 +47,17 @@ export default function TimeSlotMissions({
   });
 
   return (
-    <div className="mx-4 mt-4 toss-card rounded-2xl overflow-hidden">
+    <section className="mx-4 mt-4 toss-card rounded-2xl overflow-hidden" aria-labelledby="missions-title">
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-5 pb-3">
-        <h3
+        <h2 id="missions-title"
           className="text-lg font-black"
           style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}
         >
           오늘의 미션
-        </h3>
+        </h2>
         <span
-          className="text-xs font-bold px-3 py-1 rounded-full"
+          className="text-sm font-bold px-3 py-1 rounded-full"
           style={{ backgroundColor: "rgba(0,78,203,0.08)", color: "var(--toss-primary)" }}
         >
           {total - totalCompleted > 0 ? `${total - totalCompleted}개 남음` : "🎉 완료!"}
@@ -66,7 +66,8 @@ export default function TimeSlotMissions({
 
       {/* Segmented control tabs */}
       <div
-        className="flex gap-1 mx-4 mb-3 p-1 rounded-full"
+        role="group" aria-label="미션 시간대"
+        className="grid grid-cols-4 gap-1 mx-4 mb-3 p-1 rounded-2xl"
         style={{ backgroundColor: "var(--toss-surface-high, #eae8e7)" }}
       >
         {ALL_SLOTS.map((slot) => {
@@ -79,8 +80,9 @@ export default function TimeSlotMissions({
           return (
             <button
               key={slot}
+              aria-pressed={isActive}
               onClick={() => setActiveSlot(slot)}
-              className="flex-1 text-center py-2 rounded-full text-[11px] font-bold transition-all duration-200"
+              className="min-w-0 flex flex-col items-center justify-center gap-1 text-center py-2 rounded-xl text-sm font-bold"
               style={{
                 backgroundColor: isActive ? "var(--toss-card-bg, #ffffff)" : "transparent",
                 color: isActive
@@ -91,7 +93,8 @@ export default function TimeSlotMissions({
                 boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
               }}
             >
-              {slotDone ? "✅" : m.emoji} {m.name}
+              <span aria-hidden="true">{slotDone ? "✅" : m.emoji}</span>
+              <span>{m.name}{slotDone && <span className="sr-only"> 완료</span>}</span>
             </button>
           );
         })}
@@ -139,6 +142,6 @@ export default function TimeSlotMissions({
           onClose={() => setSelected(null)}
         />
       )}
-    </div>
+    </section>
   );
 }

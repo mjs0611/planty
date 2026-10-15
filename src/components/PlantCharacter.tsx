@@ -1,5 +1,7 @@
 "use client";
 import type { PlantStage, PlantType } from "@/types/plant";
+import { STAGE_INFO } from "@/lib/plantState";
+import { PLANT_TYPE_INFO } from "@/lib/season";
 
 interface Props {
   stage: PlantStage;
@@ -22,7 +24,7 @@ export default function PlantCharacter({ stage, plantType, className, style }: P
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={`/plants/${plantType}/stage_${num}.png`}
-      alt={`${plantType} ${stage}`}
+      alt={`${PLANT_TYPE_INFO[plantType].name} ${STAGE_INFO[stage].name}`}
       className={className}
       style={{ objectFit: "contain", display: "block", width: "100%", height: "100%", ...style }}
     />

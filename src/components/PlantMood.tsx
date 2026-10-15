@@ -28,10 +28,10 @@ export default function PlantMood({ plant, completedToday }: Props) {
           transform: visible ? "translateY(0) scale(1)" : "translateY(10px) scale(0.9)",
           pointerEvents: "none",
         }}
-        className="bg-white/80 dark:bg-black/40 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-2xl px-4 py-2 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] flex items-center gap-2 max-w-[220px]"
+        className="plant-mood-bubble bg-white/80 dark:bg-black/40 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-2xl px-4 py-2 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] flex items-center gap-2 max-w-[260px]"
       >
         <span className={`text-lg ${visible ? "animate-bounce" : ""}`}>{mood.emoji}</span>
-        <span className="text-[12px] text-gray-700 dark:text-gray-200 font-medium leading-tight">{mood.message}</span>
+        <span className="text-sm font-medium leading-relaxed" style={{ color: 'var(--toss-on-surface)' }}>{mood.message}</span>
       </div>
       <div
         style={{
@@ -39,7 +39,7 @@ export default function PlantMood({ plant, completedToday }: Props) {
           transition: "opacity 300ms ease, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)",
           transform: visible ? "translateY(0)" : "translateY(10px)",
         }}
-        className="w-3 h-3 bg-white/80 dark:bg-black/40 backdrop-blur-md border-r border-b border-white/40 dark:border-white/10 rotate-45 -mt-2 z-[-1]"
+        className="plant-mood-tail w-3 h-3 bg-white/80 dark:bg-black/40 backdrop-blur-md border-r border-b border-white/40 dark:border-white/10 rotate-45 -mt-2 z-[-1]"
       />
     </div>
   );

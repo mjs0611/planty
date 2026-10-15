@@ -1,3 +1,4 @@
+import Link from "next/link";
 
 export default function PrivacyPage() {
   return (
@@ -5,15 +6,16 @@ export default function PrivacyPage() {
       className="min-h-screen px-5 py-10 max-w-lg mx-auto"
       style={{ backgroundColor: "var(--toss-surface, #fbf9f8)", color: "var(--toss-on-surface, #1b1c1c)" }}
     >
+      <Link href="/?tab=profile" className="inline-flex items-center gap-2 text-sm font-semibold mb-4">‹ 프로필로 돌아가기</Link>
       {/* Header */}
       <div className="mb-8">
-        <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: "var(--toss-primary, #004ecb)" }}>
+        <p className="text-sm font-black uppercase tracking-widest mb-1" style={{ color: "var(--toss-primary, #004ecb)" }}>
           Planty
         </p>
         <h1 className="text-2xl font-black" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>
           개인정보처리방침
         </h1>
-        <p className="text-xs mt-1" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
+        <p className="text-sm mt-1" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
           시행일: 2026년 3월 21일
         </p>
       </div>
@@ -30,7 +32,7 @@ export default function PrivacyPage() {
 
         {/* 제1장 */}
         <div>
-          <p className="text-[11px] font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제1장 총칙</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제1장 총칙</p>
           <div className="space-y-6">
             <section>
               <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제1조 (목적)</h2>
@@ -53,7 +55,7 @@ export default function PrivacyPage() {
 
         {/* 제2장 */}
         <div>
-          <p className="text-[11px] font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제2장 개인정보 수집 및 이용</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제2장 개인정보 수집 및 이용</p>
           <div className="space-y-6">
             <section>
               <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제3조 (수집하는 개인정보)</h2>
@@ -109,7 +111,7 @@ export default function PrivacyPage() {
 
         {/* 제3장 */}
         <div>
-          <p className="text-[11px] font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제3장 개인정보의 제공 및 위탁</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제3장 개인정보의 제공 및 위탁</p>
           <div className="space-y-6">
             <section>
               <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제6조 (제3자 제공)</h2>
@@ -144,7 +146,7 @@ export default function PrivacyPage() {
 
         {/* 제4장 */}
         <div>
-          <p className="text-[11px] font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제4장 이용자의 권리</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제4장 이용자의 권리</p>
           <section>
             <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제8조 (이용자의 권리 및 행사 방법)</h2>
             <ul className="space-y-2">
@@ -163,7 +165,7 @@ export default function PrivacyPage() {
 
         {/* 제5장 */}
         <div>
-          <p className="text-[11px] font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제5장 개인정보 보호 조치</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제5장 개인정보 보호 조치</p>
           <section>
             <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제9조 (개인정보의 안전성 확보 조치)</h2>
             <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
@@ -186,7 +188,7 @@ export default function PrivacyPage() {
 
         {/* 제6장 */}
         <div>
-          <p className="text-[11px] font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제6장 방침의 변경</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제6장 방침의 변경</p>
           <section>
             <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제10조 (개인정보처리방침의 변경)</h2>
             <ul className="space-y-2">
@@ -210,9 +212,9 @@ export default function PrivacyPage() {
         className="mt-10 pt-6 space-y-1"
         style={{ borderTop: "1px solid var(--toss-surface-high, #eae8e7)" }}
       >
-        <p className="text-xs font-semibold" style={{ color: "var(--toss-on-surface, #1b1c1c)" }}>문의</p>
-        <p className="text-xs" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>help.ditoaxis@gmail.com</p>
-        <p className="text-xs mt-3" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
+        <p className="text-sm font-semibold" style={{ color: "var(--toss-on-surface, #1b1c1c)" }}>문의</p>
+        <p className="text-sm" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>help.ditoaxis@gmail.com</p>
+        <p className="text-sm mt-3" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
           Planty v0.1.0 · © 2026 디토엑시스
         </p>
       </div>

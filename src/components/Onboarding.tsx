@@ -11,21 +11,20 @@ interface Props {
 }
 
 const TOTAL_STEPS = 3;
-
 const FEATURES = [
   {
     emoji: "🌿",
-    title: "미션 완료 → 식물 성장",
+    title: "미션을 마치면 자라요",
     desc: "하루 최대 12개 미션을 완료하면\n식물이 씨앗에서 황금 식물까지 자라요",
   },
   {
     emoji: "🔥",
-    title: "연속 케어 스트릭",
+    title: "매일 이어서 돌봐요",
     desc: "매일 빠짐없이 돌볼수록\n특별한 보너스와 배지를 얻어요",
   },
   {
     emoji: "✨",
-    title: "식물과 교감",
+    title: "식물을 눌러 교감해요",
     desc: "식물을 탭하거나 연타하면\n특별한 이벤트와 보상이 생겨요",
   },
 ];
@@ -33,19 +32,14 @@ const FEATURES = [
 export default function Onboarding({ onStart, plantType = "green" }: Props) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
-  const [featureVisible, setFeatureVisible] = useState(false);
-  const touchStartX = useRef(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const previousStep = useRef(step);
 
   useEffect(() => {
-    if (step === 1) {
-      setFeatureVisible(false);
-      const t = setTimeout(() => setFeatureVisible(true), 50);
-      return () => clearTimeout(t);
-    }
-  }, [step]);
-
-  // 뒤로가기: step > 0이면 이전 단계로. 처리 등록은 page.tsx의 installHistoryBack 한 곳에서 한다
-  useEffect(() => {
+    if (previousStep.current !== step) headingRef.current?.focus();
+    previousStep.current = step;
     onboardingBack = () => { if (step === 0) return false; setStep(s => Math.max(s - 1, 0)); return true; };
     return () => { onboardingBack = null; };
   }, [step]);
@@ -53,275 +47,96 @@ export default function Onboarding({ onStart, plantType = "green" }: Props) {
   const goNext = () => setStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
   const goPrev = () => setStep(s => Math.max(s - 1, 0));
   const handleStart = () => onStart(name.trim() || undefined);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (diff > 48 && step < TOTAL_STEPS - 1) goNext();
-    else if (diff < -48 && step > 0) goPrev();
-  };
-
-  const ctaLabel = (() => {
-    if (step < TOTAL_STEPS - 1) return "다음";
-    if (name.trim()) return `${name.trim()}와 함께 시작하기 🌱`;
-    return "시작하기 🌱";
-  })();
+  const ctaLabel = step < TOTAL_STEPS - 1 ? "다음" : name.trim() ? `${name.trim()}와 함께 시작하기 🌱` : "시작하기 🌱";
 
   return (
-    <div
-      className="min-h-screen flex flex-col overflow-hidden"
-      style={{ backgroundColor: "#fbf9f8" }}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+    <main className="onboarding"
+      onTouchStart={e => {
+        if ((e.target as HTMLElement).closest("input, button")) return;
+        touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }}
+      onTouchEnd={e => {
+        const start = touchStart.current;
+        touchStart.current = null;
+        if (!start) return;
+        const dx = start.x - e.changedTouches[0].clientX;
+        const dy = start.y - e.changedTouches[0].clientY;
+        if (Math.abs(dx) <= Math.abs(dy)) return;
+        if (dx > 48) goNext();
+        else if (dx < -48) goPrev();
+      }}
+      onTouchCancel={() => { touchStart.current = null; }}
     >
-      {/* Progress dots */}
-      <div className="flex justify-center gap-2 pt-14 pb-2">
-        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-full transition-all duration-300"
-            style={{
-              width: i === step ? 24 : 8,
-              height: 8,
-              backgroundColor:
-                i === step ? "#004ecb" : i < step ? "#b3c5ff" : "#eae8e7",
-            }}
-          />
-        ))}
-      </div>
+      <header className="onboarding-progress">
+        {step > 0 ? <button onClick={goPrev} className="text-sm font-semibold">‹ 이전</button> : <span />}
+        <p aria-label={`온보딩 ${step + 1} / ${TOTAL_STEPS}단계`} className="text-sm font-semibold tabular-nums">{step + 1} / {TOTAL_STEPS}</p>
+        <span />
+      </header>
 
-      {/* 상단 여백 (토스 내비게이션 바 뒤로가기로 대체) */}
-      <div className="h-10" />
-
-      {/* Slides */}
-      <div className="flex-1 overflow-hidden">
-        <div
-          className="flex h-full"
-          style={{
-            transform: `translateX(-${step * (100 / TOTAL_STEPS)}%)`,
-            transition: "transform 0.38s cubic-bezier(0.4, 0, 0.2, 1)",
-            width: `${TOTAL_STEPS * 100}%`,
-          }}
-        >
-          {/* ── Step 0: Hero ── */}
-          <div
-            className="flex flex-col items-center justify-center px-8"
-            style={{ width: `${100 / TOTAL_STEPS}%` }}
-          >
-            <div className="mb-8 flex flex-col items-center gap-2 text-center">
-              <h1
-                className="text-3xl font-extrabold tracking-tight"
-                style={{
-                  color: "#1b1c1c",
-                  fontFamily: "var(--font-headline, 'Plus Jakarta Sans', sans-serif)",
-                }}
-              >
-                🌿 플랜티
-              </h1>
-              <p className="text-base leading-relaxed" style={{ color: "#424656" }}>
-                매일 조금씩 돌봐주는<br />나만의 가상 식물이에요
-              </p>
-            </div>
-
-            <div className="relative w-full max-w-[300px] aspect-square flex items-center justify-center">
-              <div
-                className="absolute inset-0 rounded-full blur-3xl opacity-40 pointer-events-none"
-                style={{ background: "radial-gradient(circle, rgba(99,253,187,0.35), transparent 70%)" }}
-              />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/plants/${plantType}/stage_1.png`}
-                alt="씨앗"
-                className="w-4/5 h-4/5 object-contain drop-shadow-2xl relative z-10"
-                style={{ animation: "breathe 4s ease-in-out infinite" }}
-              />
-              <div
-                className="absolute -bottom-4 right-0 z-20 flex items-center gap-2.5 rounded-2xl px-3 py-2.5"
-                style={{
-                  backgroundColor: "#ffffff",
-                  boxShadow: "0 12px 32px -4px rgba(0,84,216,0.10)",
-                }}
-              >
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: "#63fdbb" }}
-                >
-                  <span className="text-base">💧</span>
-                </div>
-                <div>
-                  <p
-                    className="text-[10px] font-bold uppercase tracking-wider"
-                    style={{ color: "#424656" }}
-                  >
-                    Health
-                  </p>
-                  <div
-                    className="w-20 h-2 rounded-full mt-1 overflow-hidden"
-                    style={{ backgroundColor: "#eae8e7" }}
-                  >
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: "85%",
-                        background: "linear-gradient(to right, #006c49, #63fdbb)",
-                      }}
-                    />
-                  </div>
+      {/* Only the current slide is mounted, keeping hidden inputs out of the tab order. */}
+      <section className="onboarding-slide" aria-labelledby="onboarding-title" key={step}>
+        {step === 0 && <>
+          <div className="text-center mb-8">
+            <h1 id="onboarding-title" ref={headingRef} tabIndex={-1} className="text-3xl font-extrabold tracking-tight">🌿 플랜티</h1>
+            <p className="text-base leading-relaxed mt-4" style={{ color: "var(--toss-on-surface-variant)" }}>
+              매일 조금씩 돌봐주는<br />나만의 가상 식물이에요
+            </p>
+          </div>
+          <div className="relative w-full max-w-[280px] aspect-square flex items-center justify-center mb-6">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/plants/${plantType}/stage_1.png`} alt="화분 속 씨앗" className="w-4/5 h-4/5 object-contain drop-shadow-2xl animate-breathe" />
+            <div className="absolute bottom-0 right-0 flex items-center gap-3 rounded-2xl px-4 py-3 toss-card shadow-lg">
+              <span aria-hidden="true" className="text-2xl">💧</span>
+              <div>
+                <p className="text-sm font-semibold">수분</p>
+                <div className="w-20 h-2 rounded-full mt-1 overflow-hidden" style={{ backgroundColor: "var(--toss-surface-high)" }}>
+                  <div className="h-full rounded-full w-[85%]" style={{ background: "linear-gradient(to right, #006c49, #63fdbb)" }} />
                 </div>
               </div>
             </div>
           </div>
+        </>}
 
-          {/* ── Step 1: How it works ── */}
-          <div
-            className="flex flex-col justify-center px-5"
-            style={{ width: `${100 / TOTAL_STEPS}%` }}
-          >
-            <h2
-              className="text-2xl font-extrabold text-center mb-6"
-              style={{
-                color: "#1b1c1c",
-                fontFamily: "var(--font-headline, 'Plus Jakarta Sans', sans-serif)",
-              }}
-            >
-              이렇게 키워요
-            </h2>
-            <div className="flex flex-col gap-3">
-              {FEATURES.map((f, i) => (
-                <div
-                  key={f.emoji}
-                  className="flex items-start gap-4 rounded-2xl p-4"
-                  style={{
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 4px 16px -4px rgba(0,84,216,0.06)",
-                    opacity: featureVisible ? 1 : 0,
-                    transform: featureVisible ? "translateY(0)" : "translateY(16px)",
-                    transition: `opacity 0.4s ease ${i * 0.1}s, transform 0.4s ease ${i * 0.1}s`,
-                  }}
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-                    style={{ backgroundColor: "#f5f3f3" }}
-                  >
-                    {f.emoji}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold" style={{ color: "#1b1c1c" }}>{f.title}</p>
-                    <p
-                      className="text-xs mt-1 leading-relaxed whitespace-pre-line"
-                      style={{ color: "#424656" }}
-                    >
-                      {f.desc}
-                    </p>
-                  </div>
+        {step === 1 && <>
+          <h1 id="onboarding-title" ref={headingRef} tabIndex={-1} className="text-2xl font-extrabold text-center mb-6">이렇게 키워요</h1>
+          <div className="w-full flex flex-col gap-3">
+            {FEATURES.map(f => (
+              <div key={f.emoji} className="flex items-start gap-3 rounded-2xl p-4 toss-card">
+                <div aria-hidden="true" className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: "var(--toss-surface-low)" }}>{f.emoji}</div>
+                <div className="min-w-0">
+                  <p className="text-base font-bold">{f.title}</p>
+                  <p className="text-sm mt-1 leading-relaxed whitespace-pre-line" style={{ color: "var(--toss-on-surface-variant)" }}>{f.desc}</p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
+        </>}
 
-          {/* ── Step 2: Name your plant ── */}
-          <div
-            className="flex flex-col items-center justify-center px-8 text-center"
-            style={{ width: `${100 / TOTAL_STEPS}%` }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/plants/${plantType}/stage_1.png`}
-              alt="씨앗"
-              className="w-32 h-32 object-contain drop-shadow-lg mb-6"
-              style={{ animation: "breathe 4s ease-in-out infinite" }}
+        {step === 2 && <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/plants/${plantType}/stage_1.png`} alt="씨앗" className="w-32 h-32 object-contain drop-shadow-lg mb-6 animate-breathe" />
+          <h1 id="onboarding-title" ref={headingRef} tabIndex={-1} className="text-2xl font-extrabold mb-2 text-center">이 씨앗에게<br />이름을 지어줄까요?</h1>
+          <p className="text-sm mb-6 text-center" style={{ color: "var(--toss-on-surface-variant)" }}>나중에 언제든 바꿀 수 있어요</p>
+          <label htmlFor="onboarding-name" className="w-full text-sm font-semibold mb-2">식물 이름 (선택)</label>
+          <div className="w-full relative">
+            <input id="onboarding-name" ref={nameRef} value={name} onChange={e => setName(e.target.value)}
+              placeholder="예: 봄이, 초록이, 미미..." maxLength={12} aria-describedby="onboarding-name-hint"
+              className="w-full rounded-2xl pl-4 pr-14 py-4 text-base"
+              style={{ backgroundColor: "var(--toss-surface-low)", color: "var(--toss-on-surface)", border: "none" }}
             />
-            <h2
-              className="text-2xl font-extrabold mb-2"
-              style={{
-                color: "#1b1c1c",
-                fontFamily: "var(--font-headline, 'Plus Jakarta Sans', sans-serif)",
-              }}
-            >
-              이 씨앗에게<br />이름을 지어줄까요?
-            </h2>
-            <p className="text-sm mb-6" style={{ color: "#424656" }}>
-              나중에 언제든 바꿀 수 있어요
-            </p>
-
-            <div className="w-full relative">
-              <input
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="예: 봄이, 초록이, 미미..."
-                maxLength={12}
-                className="w-full rounded-2xl px-4 py-4 text-base focus:outline-none transition-all duration-200 text-center"
-                style={{
-                  backgroundColor: "#f5f3f3",
-                  color: "#1b1c1c",
-                  border: "none",
-                  fontFamily: "inherit",
-                }}
-                onFocus={e => {
-                  e.currentTarget.style.boxShadow = "0 0 0 2px rgba(0,78,203,0.25)";
-                  e.currentTarget.style.backgroundColor = "#ffffff";
-                }}
-                onBlur={e => {
-                  e.currentTarget.style.boxShadow = "none";
-                  e.currentTarget.style.backgroundColor = "#f5f3f3";
-                }}
-              />
-              {name && (
-                <button
-                  onClick={() => setName("")}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-lg"
-                  style={{ color: "#9ca3af" }}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-            <div className="flex justify-between w-full mt-2 px-1">
-              <span className="text-[11px]" style={{ color: "#9ca3af" }}>
-                {name.trim() ? `"${name.trim()}"` : "이름 없이도 괜찮아요"}
-              </span>
-              <span className="text-[11px]" style={{ color: "#9ca3af" }}>{name.length}/12</span>
-            </div>
+            {name && <button onClick={() => { setName(""); nameRef.current?.focus(); }} aria-label="식물 이름 지우기"
+              className="absolute right-1 top-1 bottom-1 text-xl" style={{ color: "var(--toss-on-surface-variant)" }}>×</button>}
           </div>
-        </div>
-      </div>
+          <div id="onboarding-name-hint" className="flex flex-wrap justify-between gap-2 w-full mt-2 text-sm" style={{ color: "var(--toss-on-surface-variant)" }}>
+            <span>이름 없이도 괜찮아요</span><span>{name.length} / 12자</span>
+          </div>
+        </>}
+      </section>
 
-      {/* Bottom CTA */}
-      <div className="px-5 pb-12 pt-4 flex flex-col gap-2">
-        <button
-          onClick={step < TOTAL_STEPS - 1 ? goNext : handleStart}
-          className="w-full py-5 rounded-2xl text-base font-bold text-white transition-all duration-200 active:scale-[0.98]"
-          style={{
-            background: "linear-gradient(135deg, #004ecb 0%, #0064ff 100%)",
-            boxShadow: "0 12px 32px -4px rgba(0,84,216,0.20)",
-            fontFamily: "var(--font-headline, sans-serif)",
-          }}
-        >
-          {ctaLabel}
-        </button>
-
-        {step === TOTAL_STEPS - 1 && (
-          <button
-            onClick={() => onStart(undefined)}
-            className="text-sm py-2 transition-colors"
-            style={{ color: "#424656" }}
-          >
-            이름 없이 시작하기
-          </button>
-        )}
-      </div>
-
-      {/* Ambient blobs */}
-      <div
-        className="fixed top-[15%] left-[8%] w-16 h-16 rounded-full blur-2xl pointer-events-none"
-        style={{ backgroundColor: "rgba(99,253,187,0.18)" }}
-      />
-      <div
-        className="fixed bottom-[22%] right-[5%] w-28 h-28 rounded-full blur-3xl pointer-events-none"
-        style={{ backgroundColor: "rgba(179,197,255,0.18)" }}
-      />
-    </div>
+      <footer className="onboarding-footer">
+        <button onClick={step < TOTAL_STEPS - 1 ? goNext : handleStart} className="primary-care-button">{ctaLabel}</button>
+        {step === TOTAL_STEPS - 1 && <button onClick={() => onStart(undefined)} className="w-full text-sm mt-2" style={{ color: "var(--toss-on-surface-variant)" }}>이름 없이 시작하기</button>}
+      </footer>
+    </main>
   );
 }

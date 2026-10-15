@@ -19,10 +19,10 @@ export default function MissionCard({ mission, isCompleted, onSelect }: Props) {
     <button
       onClick={() => !isCompleted && onSelect()}
       disabled={isCompleted}
-      className="w-full flex items-center justify-between gap-3 px-6 py-[18px] text-left transition-colors duration-150 active:scale-[0.99]"
+      className="w-full flex items-center justify-between gap-3 px-4 py-4 text-left transition-colors duration-150"
     >
       {/* Icon + text */}
-      <div className="flex flex-1 min-w-0 items-center gap-3" style={{ opacity: isCompleted ? 0.55 : 1 }}>
+      <div className="flex flex-1 min-w-0 items-center gap-3">
         <div
           className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0"
           style={{
@@ -35,14 +35,14 @@ export default function MissionCard({ mission, isCompleted, onSelect }: Props) {
           <p
             className="text-[16px] font-bold leading-snug"
             style={{
-              color: isCompleted ? "#adb5bd" : "var(--toss-on-surface, #1b1c1c)",
+              color: "var(--toss-on-surface)",
               textDecoration: isCompleted ? "line-through" : "none",
             }}
           >
             {mission.label}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[13px] font-bold" style={{ color: isCompleted ? "#adb5bd" : "var(--toss-primary, #004ecb)" }}>
+            <span className="text-sm font-bold" style={{ color: isCompleted ? "var(--toss-on-surface-variant)" : "var(--toss-primary)" }}>
               +{mission.xpReward} XP
             </span>
           </div>
@@ -52,8 +52,8 @@ export default function MissionCard({ mission, isCompleted, onSelect }: Props) {
       {/* Action */}
       {isCompleted ? (
         <div
-          className="flex items-center gap-1 font-bold text-[13px] px-4 py-2 rounded-[8px] flex-shrink-0"
-          style={{ backgroundColor: "#f9fafb", color: "#adb5bd" }}
+          className="flex items-center gap-1 font-bold text-sm px-3 py-2 rounded-[8px] flex-shrink-0"
+          style={{ backgroundColor: "var(--toss-surface-low)", color: "var(--toss-secondary)" }}
         >
           <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -62,8 +62,8 @@ export default function MissionCard({ mission, isCompleted, onSelect }: Props) {
         </div>
       ) : (
         <span
-          className="text-[13px] font-bold px-4 py-2 rounded-[8px] flex-shrink-0 active:scale-95 transition-transform"
-          style={{ backgroundColor: "#f2f3f4", color: "#4e5968" }}
+          className="text-sm font-bold px-3 py-2 rounded-[8px] flex-shrink-0 transition-transform"
+          style={{ backgroundColor: "var(--toss-surface-low)", color: "var(--toss-on-surface-variant)" }}
         >
           하기
         </span>

@@ -106,7 +106,7 @@ export default function BannerAd({ className }: { className?: string }) {
 
   return (
     <section aria-label="광고" className={`rounded-2xl overflow-hidden border ${className ?? ""}`} style={{ borderColor: "var(--toss-outline-variant)" }}>
-      <p className="px-3 py-1 text-xs" style={{ color: "var(--toss-on-surface-variant)" }}>광고</p>
+      <p className="px-3 py-1 text-sm" style={{ color: "var(--toss-on-surface-variant)" }}>광고</p>
       <div ref={containerRef} />
     </section>
   );

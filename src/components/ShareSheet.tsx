@@ -1,7 +1,7 @@
 "use client";
 import { BottomSheet, Button } from "@toss/tds-mobile";
 import { PlantState } from "@/types/plant";
-import { STAGE_INFO, getPlantImage } from "@/lib/plantState";
+import { STAGE_INFO, getPlantImage, getAllMissionIds } from "@/lib/plantState";
 import { useState } from "react";
 import { nativeShare } from "@/lib/bridge";
 
@@ -22,11 +22,7 @@ export default function ShareSheet({ plant, onClose }: Props) {
     setTimeout(() => setShared(false), 2000);
   };
 
-  const allIds = [
-    ...plant.timeSlotMissions.morning.map(id => `morning_${id}`),
-    ...plant.timeSlotMissions.afternoon.map(id => `afternoon_${id}`),
-    ...plant.timeSlotMissions.evening.map(id => `evening_${id}`),
-  ];
+  const allIds = getAllMissionIds(plant.timeSlotMissions);
   const completedToday = allIds.filter(id => plant.completedMissions.includes(id)).length;
   const totalMissions = allIds.length;
 
@@ -44,27 +40,25 @@ export default function ShareSheet({ plant, onClose }: Props) {
 
           <div className="text-center">
             <p className="text-lg font-bold text-gray-800 dark:text-white">{info.name}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{info.description}</p>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--toss-on-surface-variant)' }}>{info.description}</p>
           </div>
 
-          <div className="flex gap-4 text-center">
-            <div>
-              <p className="text-lg font-bold text-orange-500">🔥 {plant.streak}</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500">연속 케어</p>
+          <div className="grid grid-cols-3 gap-3 w-full text-center">
+            <div className="min-w-0">
+              <p className="text-lg font-bold" style={{ color: 'var(--color-warning)' }}>🔥 {plant.streak}</p>
+              <p className="text-sm" style={{ color: 'var(--toss-on-surface-variant)' }}>연속 돌봄</p>
             </div>
-            <div className="w-px bg-gray-200 dark:bg-gray-600" />
-            <div>
-              <p className="text-lg font-bold text-green-500">{completedToday}/{totalMissions}</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500">오늘 미션</p>
+            <div className="min-w-0">
+              <p className="text-lg font-bold" style={{ color: 'var(--toss-secondary)' }}>{completedToday}/{totalMissions}</p>
+              <p className="text-sm" style={{ color: 'var(--toss-on-surface-variant)' }}>오늘 미션</p>
             </div>
-            <div className="w-px bg-gray-200 dark:bg-gray-600" />
-            <div>
-              <p className="text-lg font-bold text-blue-500">{plant.totalDaysAlive}</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500">함께한 날</p>
+            <div className="min-w-0">
+              <p className="text-lg font-bold" style={{ color: 'var(--toss-primary)' }}>{plant.totalDaysAlive}</p>
+              <p className="text-sm" style={{ color: 'var(--toss-on-surface-variant)' }}>함께한 날</p>
             </div>
           </div>
 
-          <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex flex-wrap justify-center gap-3 text-sm" style={{ color: 'var(--toss-on-surface-variant)' }}>
             <span>💧 {plant.stats.water}</span>
             <span>☀️ {plant.stats.sunlight}</span>
             <span>💚 {plant.stats.health}</span>

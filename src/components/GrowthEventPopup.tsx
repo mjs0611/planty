@@ -23,18 +23,19 @@ export default function GrowthEventPopup({ event, onDismiss }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
-      style={{ transition: "opacity 400ms ease", opacity: visible ? 1 : 0 }}
+      role="status"
+      style={{ transition: `opacity ${visible ? 240 : 160}ms ease-out`, opacity: visible ? 1 : 0 }}
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-3xl px-6 py-5 shadow-2xl flex flex-col items-center gap-2 mx-8"
+        className="growth-event-card bg-white dark:bg-gray-800 rounded-3xl px-6 py-5 shadow-2xl flex flex-col items-center gap-2 mx-8"
         style={{
-          transition: "transform 400ms cubic-bezier(0.34,1.56,0.64,1)",
+          transition: `transform ${visible ? 240 : 160}ms cubic-bezier(.2,.8,.2,1)`,
           transform: visible ? "scale(1)" : "scale(0.8)",
         }}
       >
         <span className="text-5xl">{event.emoji}</span>
         <p className="text-base font-bold text-gray-800 dark:text-white text-center">{event.message}</p>
-        <p className="text-sm text-[#00C473] font-semibold">+{event.xpBonus} XP 보너스!</p>
+        <p className="text-sm font-semibold" style={{ color: 'var(--toss-secondary)' }}>+{event.xpBonus} XP 보너스!</p>
       </div>
     </div>
   );

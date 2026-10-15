@@ -36,22 +36,18 @@ import PestModal from "@/components/PestModal";
 import ProfilePage from "@/components/ProfilePage";
 import { useTheme } from "@/lib/theme";
 import GrowthProgress from "@/components/GrowthProgress";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
 
-// XP bar with mount animation (Stitch 9)
+// Render the current value immediately, then animate care-driven changes.
 function HeroXpBar({ xp, xpRequired }: { xp: number; xpRequired: number }) {
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setWidth(Math.min((xp / xpRequired) * 100, 100)));
-    return () => cancelAnimationFrame(id);
-  }, [xp, xpRequired]);
   return (
-    <div className="h-2.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: "var(--toss-surface-high)" }}>
+    <div role="progressbar" aria-label="성장 XP" aria-valuemin={0} aria-valuemax={xpRequired} aria-valuenow={xp}
+      className="h-2.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: "var(--toss-surface-high)" }}>
       <div
-        className="h-full rounded-full"
+        className="progress-fill h-full rounded-full"
         style={{
-          width: `${width}%`,
+          transform: `scaleX(${Math.min(xp / xpRequired, 1)})`,
           background: "linear-gradient(to right, #004ecb, #0064ff)",
-          transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       />
     </div>
@@ -76,7 +72,6 @@ export default function HomePage() {
     window.scrollTo(0, 0);
   }, []);
   const { theme, toggle } = useTheme();
-  const [showSplash, setShowSplash] = useState(true);
   const [onboarded, setOnboarded] = useState(true);
   const [creature, setCreature] = useState<Creature | null>(null);
   const [showPestModal, setShowPestModal] = useState(false);
@@ -97,6 +92,8 @@ export default function HomePage() {
     };
   }, []);
   useEffect(() => { if (activeTab !== 'home') adBackRef.current?.(); }, [activeTab]);
+  const nameDialogRef = useDialogFocus(editingName && onboarded && !!plant && !milestone && !adDialogOpen && !showShare && !showPestModal, () => setEditingName(false));
+  const milestoneDialogRef = useDialogFocus(!!milestone && onboarded && !!plant && !adDialogOpen && !showShare && !showPestModal, () => setMilestone(null));
 
   // 최신 값을 핸들러에서 참조하기 위한 refs (stale closure 방지)
   const plantRef = useRef<PlantState | null>(null);
@@ -362,18 +359,11 @@ const { toast, openToast } = useToast();
   const isPhotosynthesisDisabled = currentWeather === 'cloudy' || currentWeather === 'rainy' || currentWeather === 'moonlight';
 
   // ── Render guards ───────────────────────────────────────────
-  if (showSplash) return <Splash onDone={() => setShowSplash(false)} />;
+  if (!plant) return <Splash />;
   if (!onboarded) return <Onboarding onStart={handleOnboardingStart} plantType={plant?.plantType} />;
-  if (!plant) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-4xl animate-bounce">🌱</div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen nature-page pb-24">
+    <div className="min-h-screen nature-page app-shell">
       {/* ── Header ── */}
       <header className="sticky top-0 max-w-[430px] mx-auto z-50 toss-nav-bg backdrop-blur-xl"
         style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.05)" }}
@@ -411,28 +401,25 @@ const { toast, openToast } = useToast();
               className="relative p-2 rounded-full transition-colors"
               style={{ color: "var(--toss-on-surface-variant)" }}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a1 1 0 10-2 0v.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              <svg aria-hidden="true" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V3m-4 4 4-4 4 4M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
               </svg>
-              {plant.streak > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ backgroundColor: "var(--toss-primary)" }} />
-              )}
             </button>
           </div>
         </div>
         {/* streak / badges sub-row */}
         <div className="flex items-center gap-2 px-5 pb-2 flex-wrap">
-          <span className="text-xs font-semibold" style={{ color: "#e87600" }}>🔥 {plant.streak}일 연속</span>
+          <span className="text-sm font-semibold" style={{ color: "var(--color-warning)" }}>🔥 {plant.streak}일 연속</span>
           {plant.streakShields > 0 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+            <span className="text-sm px-2 py-0.5 rounded-full font-medium"
               style={{ backgroundColor: "rgba(0,78,203,0.08)", color: "var(--toss-primary)" }}
             >
               🛡 실드×{plant.streakShields}
             </span>
           )}
           {streakBadge && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-              style={{ backgroundColor: "rgba(232,118,0,0.10)", color: "#e87600" }}
+            <span className="text-sm px-2 py-0.5 rounded-full font-medium"
+              style={{ backgroundColor: "rgba(232,118,0,0.10)", color: "var(--color-warning)" }}
             >
               {streakBadge}
             </span>
@@ -476,15 +463,15 @@ const { toast, openToast } = useToast();
               <div className="flex flex-1 items-center justify-center gap-2">
                 <span className="text-lg">{wi.emoji}</span>
                 <div className="flex flex-col items-start leading-tight">
-                  <span className="text-[9px] font-bold" style={{ color: "var(--toss-on-surface-variant)" }}>오늘 날씨</span>
-                  <span className="text-xs font-extrabold tracking-tight" style={{ color: "var(--toss-on-surface)" }}>{wi.name}</span>
+                  <span className="text-sm font-bold" style={{ color: "var(--toss-on-surface-variant)" }}>오늘 날씨</span>
+                  <span className="text-sm font-extrabold tracking-tight" style={{ color: "var(--toss-on-surface)" }}>{wi.name}</span>
                 </div>
               </div>
               <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-700" />
               <div className="flex flex-1 items-center justify-center gap-2">
                 <div className="flex flex-col items-end leading-tight">
-                  <span className="text-[9px] font-bold" style={{ color: "var(--toss-on-surface-variant)" }}>현재 시즌</span>
-                  <span className="text-xs font-extrabold tracking-tight" style={{ color: "var(--toss-secondary)" }}>{si.name} <span className="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300 rounded px-1">+{si.xpMultiplier}x</span></span>
+                  <span className="text-sm font-bold" style={{ color: "var(--toss-on-surface-variant)" }}>현재 시즌</span>
+                  <span className="text-sm font-extrabold tracking-tight" style={{ color: "var(--toss-secondary)" }}>{si.name} <span className="text-sm bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300 rounded px-1">+{si.xpMultiplier}x</span></span>
                 </div>
                 <span className="text-lg">{si.emoji}</span>
               </div>
@@ -509,14 +496,14 @@ const { toast, openToast } = useToast();
         <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4 pb-0">
           <div className="flex items-center gap-2">
             <span
-              className="text-[10px] font-black px-2 py-0.5 rounded-full"
+              className="text-sm font-black px-2 py-0.5 rounded-full"
               style={{ backgroundColor: "rgba(0,78,203,0.08)", color: "var(--toss-primary)" }}
             >
               {STAGE_INFO[plant.stage].name}
             </span>
             {plant.isWilting && !plant.isDead && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: "rgba(186,26,26,0.08)", color: "#ba1a1a" }}>
+              <span className="text-sm font-bold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: "rgba(186,26,26,0.08)", color: "var(--color-danger)" }}>
                 ⚠️ 힘들어요
               </span>
             )}
@@ -530,7 +517,7 @@ const { toast, openToast } = useToast();
           </button>
         </div>
         {/* 단계 설명 */}
-        <p className="text-center text-xs px-5 pt-0.5 pb-0" style={{ color: "var(--toss-on-surface-variant)" }}>
+        <p className="text-center text-sm px-5 pt-0.5 pb-0" style={{ color: "var(--toss-on-surface-variant)" }}>
           {plant.isDead || plant.isWilting ? "쉬고 있던 식물을 다시 돌봐주세요" : STAGE_INFO[plant.stage].description}
         </p>
 
@@ -555,15 +542,11 @@ const { toast, openToast } = useToast();
             onComboTap={handleComboTap}
             onTapStatBoost={handleTapStatBoost}
           />
-          {/* Floating Actions */}
-          {!plant.isDead && (
-            <>
-              <div className="absolute top-1/2 right-4 -translate-y-1/2 z-10">
-                <MiniWatering plant={plant} onWater={handleMiniWater} compact />
-              </div>
-            </>
-          )}
         </div>
+        {!plant.isDead && <p className="text-sm text-center px-5" style={{ color: "var(--toss-on-surface-variant)" }}>식물을 눌러 쓰다듬어요</p>}
+        {!plant.isDead && <div className="px-5 pt-4">
+          <MiniWatering plant={plant} onWater={handleMiniWater} primary={plant.stage !== 'special' && !plant.isWilting} />
+        </div>}
         <div className="px-5 pb-3">
           <GrowthProgress plant={plant} feedback={careFeedback} />
         </div>
@@ -571,8 +554,8 @@ const { toast, openToast } = useToast();
         {!plant.isDead && plant.stage !== 'special' && (
           <div className="px-5 pb-2">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[10px] font-bold tracking-wide" style={{ color: "var(--toss-primary)" }}>성장 XP</span>
-              <span className="text-[10px] font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>{plant.xp} / {plant.xpRequired}</span>
+              <span className="text-sm font-bold tracking-wide" style={{ color: "var(--toss-primary)" }}>성장 XP</span>
+              <span className="text-sm font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>{plant.xp} / {plant.xpRequired}</span>
             </div>
             <HeroXpBar xp={plant.xp} xpRequired={plant.xpRequired} />
           </div>
@@ -592,7 +575,7 @@ const { toast, openToast } = useToast();
               return (
                 <div
                   key={label}
-                  className={`rounded-xl p-2.5 flex flex-col items-center gap-0.5 ${isCritical ? "animate-stat-danger" : ""}`}
+                  className="rounded-xl p-2 flex flex-col items-center gap-1 min-w-0"
                   style={{
                     backgroundColor: isCritical
                       ? "rgba(186,26,26,0.08)"
@@ -602,9 +585,9 @@ const { toast, openToast } = useToast();
                   }}
                 >
                   <span className="text-base">{emoji}</span>
-                  <p className="text-[9px] font-bold tracking-tight" style={{ color: isCritical ? "#ba1a1a" : isWarn ? "#e87600" : "var(--toss-on-surface-variant)" }}>{label}</p>
-                  <p className="text-xs font-extrabold" style={{ color: isCritical ? "#ba1a1a" : isWarn ? "#e87600" : "var(--toss-on-surface)" }}>{display}</p>
-                  {isCritical && <span className="text-[8px] font-bold" style={{ color: "#ba1a1a" }}>⚠️</span>}
+                  <p className="text-sm font-bold tracking-tight" style={{ color: isCritical ? "var(--color-danger)" : isWarn ? "var(--color-warning)" : "var(--toss-on-surface-variant)" }}>{label}</p>
+                  <p className="text-sm font-extrabold" style={{ color: isCritical ? "var(--color-danger)" : isWarn ? "var(--color-warning)" : "var(--toss-on-surface)" }}>{display}</p>
+                  {isCritical && <span className="text-sm font-bold" style={{ color: "var(--color-danger)" }}>돌봄 필요</span>}
                 </div>
               );
             })}
@@ -630,7 +613,7 @@ const { toast, openToast } = useToast();
         </div>
         <div className="min-w-0 text-left">
           <p className="font-bold">{plant.garden.length ? `정원 ${plant.garden.length}그루 · ${getGardenSummary(plant).collectedTypes}종` : '첫 황금 식물을 모아봐요'}</p>
-          <p className="growth-detail">내 정원 보기 →</p>
+          <p className="growth-detail">내 정원 보기 ›</p>
         </div>
       </button>
 
@@ -680,16 +663,17 @@ const { toast, openToast } = useToast();
 
       {/* 스트릭 마일스톤 팝업 */}
       {milestone && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setMilestone(null)}>
+        <div className="dialog-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto" onClick={() => setMilestone(null)}>
           <div
-            className="toss-card rounded-3xl p-8 mx-6 text-center"
+            ref={milestoneDialogRef} role="dialog" aria-modal="true" aria-labelledby="milestone-title" tabIndex={-1}
+            className="dialog-panel toss-card rounded-3xl p-6 w-full max-w-sm max-h-[calc(100dvh-32px)] overflow-y-auto text-center"
             style={{ boxShadow: "0 24px 48px rgba(0,0,0,0.15)" }}
             onClick={e => e.stopPropagation()}
           >
             <div className="text-6xl mb-3">
               {milestone.streak >= 30 ? '🏆' : milestone.streak >= 14 ? '🌟' : milestone.streak >= 7 ? '⭐' : '🎉'}
             </div>
-            <p className="text-xl font-bold mb-1" style={{ color: "var(--toss-on-surface)" }}>
+            <p id="milestone-title" className="text-xl font-bold mb-1" style={{ color: "var(--toss-on-surface)" }}>
               {milestone.streak}일 연속 달성!
             </p>
             <p className="text-sm mb-4" style={{ color: "var(--toss-on-surface-variant)" }}>
@@ -709,14 +693,17 @@ const { toast, openToast } = useToast();
 
       {/* 이름 편집 모달 */}
       {editingName && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm" onClick={() => setEditingName(false)}>
+        <div className="dialog-backdrop fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm" onClick={() => setEditingName(false)}>
           <div
-            className="w-full toss-card rounded-t-3xl p-6 pb-8"
+            ref={nameDialogRef} role="dialog" aria-modal="true" aria-labelledby="plant-name-title" tabIndex={-1}
+            className="dialog-sheet w-full max-w-[430px] mx-auto toss-card rounded-t-3xl p-6 pb-8 max-h-[90dvh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
-            <p className="text-lg font-bold mb-1" style={{ color: "var(--toss-on-surface)" }}>내 식물 이름 짓기 🌿</p>
-            <p className="text-xs mb-4" style={{ color: "var(--toss-on-surface-variant)" }}>최대 12자</p>
+            <h2 id="plant-name-title" className="text-lg font-bold mb-1" style={{ color: "var(--toss-on-surface)" }}>내 식물 이름 짓기 🌿</h2>
+            <label htmlFor="plant-name" className="block text-sm mb-2">식물 이름</label>
+            <p id="plant-name-hint" className="text-sm mb-4" style={{ color: "var(--toss-on-surface-variant)" }}>최대 12자</p>
             <input
+              id="plant-name" aria-describedby="plant-name-hint" data-dialog-autofocus
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
               placeholder="예: 봄이, 초록이, 미미..."
@@ -727,9 +714,7 @@ const { toast, openToast } = useToast();
                 color: "var(--toss-on-surface)",
                 border: "none",
               }}
-              onFocus={e => { e.currentTarget.style.boxShadow = "0 0 0 2px rgba(0,78,203,0.25)"; }}
-              onBlur={e => { e.currentTarget.style.boxShadow = "none"; }}
-              autoFocus
+              onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSaveName(); }}
             />
             <div className="flex gap-2 mt-4">
               <button
@@ -737,14 +722,14 @@ const { toast, openToast } = useToast();
                 style={{ backgroundColor: "var(--toss-surface-low)", color: "var(--toss-on-surface-variant)" }}
                 onClick={() => setEditingName(false)}
               >
-                취소
+                취소하기
               </button>
               <button
                 className="flex-1 py-3 rounded-2xl font-bold text-white"
                 style={{ background: "linear-gradient(135deg, #004ecb, #0064ff)" }}
                 onClick={handleSaveName}
               >
-                저장
+                저장하기
               </button>
             </div>
           </div>
@@ -752,7 +737,7 @@ const { toast, openToast } = useToast();
       )}
 
       {/* Bottom Tab Nav — floating pill */}
-      <nav className="fixed bottom-4 left-0 right-0 px-4 max-w-[430px] mx-auto z-40">
+      <nav aria-label="주요 화면" className="bottom-navigation fixed left-0 right-0 px-4 max-w-[430px] mx-auto z-40">
         <div
           className="toss-nav-bg backdrop-blur-xl rounded-2xl border border-black/5 dark:border-white/5"
           style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06)" }}
@@ -780,16 +765,17 @@ const { toast, openToast } = useToast();
               return (
                 <button
                   key={id}
+                  aria-current={active ? 'page' : undefined}
                   onClick={() => navigateTab(id)}
                   className="w-full h-full flex flex-col items-center justify-center touch-manipulation"
                 >
                   <div className={`flex flex-col items-center justify-center w-14 py-1 rounded-2xl transition-all duration-300 ${
                     active
-                      ? "text-[#3182F6] bg-[#3182F6]/10"
-                      : "text-slate-400 dark:text-slate-500"
+                      ? "text-[var(--toss-primary)] bg-[rgba(0,78,203,0.08)]"
+                      : "text-[var(--toss-on-surface-variant)]"
                   }`}>
                     {renderIcon(active)}
-                    <span className={`text-[10px] leading-none tracking-tight ${active ? "font-bold" : "font-medium"}`}>
+                    <span className={`text-sm leading-none tracking-tight ${active ? "font-bold" : "font-medium"}`}>
                       {label}
                     </span>
                   </div>

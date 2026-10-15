@@ -8,7 +8,8 @@ export default function GrowthProgress({ plant, feedback }: { plant: PlantState;
   return (
     <section className="growth-progress" aria-label="성장 목표">
       {feedback && (
-        <div className="growth-feedback" role="status" aria-live="polite">
+        <div key={`${feedback.source}:${plant.stage}:${plant.xp}`} className="growth-feedback" role="status" aria-live="polite">
+          <span className="care-complete-mark" aria-hidden="true">✓</span>
           <p className="font-semibold">{feedback.source} · +{feedback.xpGained} XP</p>
           {grew && (
             <div className="growth-comparison">

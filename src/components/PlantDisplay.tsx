@@ -65,8 +65,8 @@ export default function PlantDisplay({
     if (isDead) return;
 
     const rect = containerRef.current!.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = e.detail === 0 ? rect.width / 2 : e.clientX - rect.left;
+    const y = e.detail === 0 ? rect.height / 2 : e.clientY - rect.top;
 
     if (comboResetRef.current) clearTimeout(comboResetRef.current);
 
@@ -131,10 +131,12 @@ export default function PlantDisplay({
   // ── Compact mode ─────────────────────────────────────────────────────────
   if (compact) {
     return (
-      <div className="relative flex-shrink-0" ref={containerRef} onClick={handleTapWithHappy}>
+      <div className="relative flex-shrink-0" ref={containerRef} onClick={handleTapWithHappy}
+        role="button" tabIndex={isDead ? -1 : 0} aria-disabled={isDead} aria-label="식물 쓰다듬기"
+        onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); e.currentTarget.click(); } }}>
         <div
           ref={squishRef}
-          className="w-20 h-20 rounded-full flex items-center justify-center cursor-pointer select-none overflow-visible"
+          className="plant-squish w-20 h-20 rounded-full flex items-center justify-center cursor-pointer select-none overflow-visible"
           style={{
             backgroundColor: "rgba(0,100,255,0.06)",
             animation: !isDead && !isWilting ? "planet-float 4.5s ease-in-out infinite" : undefined,
@@ -156,7 +158,7 @@ export default function PlantDisplay({
         {combo > 1 && !isDead && (
           <div
             key={comboBadgeKey}
-            className="absolute -top-2 -right-2 text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[24px] text-center animate-combo-pop bg-yellow-400 text-yellow-900"
+            className="absolute -top-2 -right-2 text-sm font-bold rounded-full px-1.5 py-0.5 min-w-[24px] text-center animate-combo-pop bg-yellow-400 text-yellow-900"
           >
             x{combo}
           </div>
@@ -168,9 +170,9 @@ export default function PlantDisplay({
   // ── Combo badge color ─────────────────────────────────────────────────────
   const badgeColor =
     combo >= 30 ? "bg-yellow-400 text-yellow-900 shadow-[0_0_12px_rgba(250,204,21,0.6)]" :
-    combo >= 20 ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]" :
-    combo >= 10 ? "bg-orange-400 text-white shadow-[0_0_8px_rgba(251,146,60,0.5)]" :
-    combo >= 5  ? "bg-emerald-400 text-white shadow-sm" :
+    combo >= 20 ? "bg-purple-100 text-purple-900 shadow-[0_0_10px_rgba(168,85,247,0.5)]" :
+    combo >= 10 ? "bg-orange-100 text-orange-900 shadow-[0_0_8px_rgba(251,146,60,0.5)]" :
+    combo >= 5  ? "bg-emerald-100 text-emerald-900 shadow-sm" :
                   "bg-emerald-200 text-emerald-800";
 
   return (
@@ -185,21 +187,23 @@ export default function PlantDisplay({
       {plantType !== "green" && (
         <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full px-2 py-0.5 backdrop-blur-sm"
           style={{ backgroundColor: "var(--toss-surface-lowest)", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
-          <span className="text-xs">{typeInfo.emoji}</span>
-          <span className="text-[10px] font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>{typeInfo.name}</span>
+          <span className="text-sm">{typeInfo.emoji}</span>
+          <span className="text-sm font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>{typeInfo.name}</span>
         </div>
       )}
 
       {/* Tappable plant area */}
       <div
         ref={containerRef}
-        className="relative w-64 h-64 cursor-pointer select-none mx-auto"
+        role="button" tabIndex={isDead ? -1 : 0} aria-disabled={isDead} aria-label="식물 쓰다듬기"
+        onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); e.currentTarget.click(); } }}
+        className="relative w-64 max-w-full aspect-square cursor-pointer select-none mx-auto rounded-3xl"
         onClick={handleTapWithHappy}
       >
         {/* Squish wrapper */}
-        <div ref={squishRef} className="w-full h-full">
+        <div ref={squishRef} className="plant-squish w-full h-full">
           <div
-            className={`relative w-full h-full transition-all duration-500 ${
+            className={`relative w-full h-full ${
               isDead ? "opacity-80" :
               !isWilting && !celebrating && !isHappy ? "animate-planet-float" : ""
             }`}

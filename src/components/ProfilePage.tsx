@@ -3,6 +3,7 @@ import { PlantState } from "@/types/plant";
 import { STAGE_INFO, getPlantImage } from "@/lib/plantState";
 import { PLANT_TYPE_INFO } from "@/lib/season";
 import { Button } from "@toss/tds-mobile";
+import Link from "next/link";
 
 interface Props {
   plant: PlantState;
@@ -18,7 +19,7 @@ function StatCard({ label, value, emoji }: { label: string; value: string | numb
       style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}
     >
       <span className="text-2xl">{emoji}</span>
-      <p className="text-[10px] font-bold uppercase tracking-tight" style={{ color: "var(--toss-on-surface-variant)" }}>
+      <p className="text-sm font-bold uppercase tracking-tight" style={{ color: "var(--toss-on-surface-variant)" }}>
         {label}
       </p>
       <p className="text-lg font-extrabold" style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}>
@@ -32,26 +33,29 @@ function SettingRow({
   label,
   value,
   onClick,
-  danger,
+  href,
+  checked,
 }: {
   label: string;
   value?: string;
   onClick?: () => void;
-  danger?: boolean;
+  href?: string;
+  checked?: boolean;
 }) {
+  const content = <>
+    <span className="text-base font-medium" style={{ color: "var(--toss-on-surface)" }}>{label}</span>
+    {value && <span className="text-sm font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>{value}</span>}
+    {href && <span aria-hidden="true" style={{ color: "var(--toss-on-surface-variant)" }}>›</span>}
+  </>;
+  if (href) return <Link href={href} className="w-full min-h-12 flex items-center justify-between gap-3 px-4 py-3 text-left">{content}</Link>;
   return (
     <button
-      className="w-full flex items-center justify-between px-4 py-3 transition-colors text-left"
+      className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+      role="switch" aria-checked={checked}
+      aria-label={label}
       onClick={onClick}
     >
-      <span className="text-sm font-medium" style={{ color: danger ? "#ba1a1a" : "var(--toss-on-surface)" }}>
-        {label}
-      </span>
-      {value && (
-        <span className="text-sm font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>
-          {value}
-        </span>
-      )}
+      {content}
     </button>
   );
 }
@@ -82,7 +86,7 @@ export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: 
           </div>
           <div className="flex-1 min-w-0">
             <p
-              className="text-xl font-black truncate"
+              className="text-xl font-black [overflow-wrap:anywhere]"
               style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}
             >
               {plant.name || stageInfo.name}
@@ -94,15 +98,14 @@ export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: 
             <div className="mt-2">
               <div className="h-2 w-full rounded-full overflow-hidden" style={{ backgroundColor: "var(--toss-surface-high)" }}>
                 <div
-                  className="h-full rounded-full"
+                  className="progress-fill h-full rounded-full"
                   style={{
-                    width: `${progress}%`,
+                    transform: `scaleX(${Math.min(progress, 100) / 100})`,
                     background: "linear-gradient(to right, #004ecb, #0064ff)",
-                    transition: "width 1s ease",
                   }}
                 />
               </div>
-              <p className="text-[10px] mt-1 font-semibold" style={{ color: "var(--toss-primary)" }}>
+              <p className="text-sm mt-1 font-semibold" style={{ color: "var(--toss-primary)" }}>
                 {plant.xp} / {plant.xpRequired} XP
               </p>
             </div>
@@ -113,26 +116,27 @@ export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: 
       {/* Stats grid */}
       <div className="grid grid-cols-3 gap-2 mx-4 mt-2">
         <StatCard label="연속" value={`${plant.streak}일`} emoji="🔥" />
-        <StatCard label="최고 스트릭" value={`${plant.maxStreak}일`} emoji="⭐" />
+        <StatCard label="최고 연속 기록" value={`${plant.maxStreak}일`} emoji="⭐" />
         <StatCard label="정원" value={`${plant.garden.length}그루`} emoji="🌱" />
       </div>
 
       {/* Settings */}
       <div className="mx-4 mt-2 toss-card rounded-2xl overflow-hidden">
         <div className="px-4 pt-4 pb-1">
-          <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--toss-on-surface-variant)" }}>
+          <p className="text-sm font-black uppercase tracking-widest" style={{ color: "var(--toss-on-surface-variant)" }}>
             설정
           </p>
         </div>
         <SettingRow
           label="다크모드"
           value={theme === "dark" ? "켜짐 🌙" : "꺼짐 ☀️"}
+          checked={theme === "dark"}
           onClick={onToggleTheme}
         />
         <div style={{ height: 1, backgroundColor: "var(--toss-surface-high)" }} className="mx-4" />
-        <SettingRow label="개인정보 처리방침" onClick={() => window.open("/privacy", "_blank")} />
+        <SettingRow label="개인정보 처리방침" href="/privacy" />
         <div style={{ height: 1, backgroundColor: "var(--toss-surface-high)" }} className="mx-4" />
-        <SettingRow label="이용약관" onClick={() => window.open("/terms", "_blank")} />
+        <SettingRow label="이용약관" href="/terms" />
       </div>
 
       {/* Danger zone */}
@@ -144,7 +148,7 @@ export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: 
         </div>
       )}
 
-      <p className="text-center text-xs mt-6 mb-2" style={{ color: "var(--toss-on-surface-variant)" }}>
+      <p className="text-center text-sm mt-6 mb-2" style={{ color: "var(--toss-on-surface-variant)" }}>
         Planty v0.1.0 · Made with 🌿
       </p>
     </div>

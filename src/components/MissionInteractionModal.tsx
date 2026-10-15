@@ -2,6 +2,7 @@
 import { Mission } from "@/types/plant";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { haptic } from "@/lib/bridge";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
 
 const HOLD_MISSIONS = new Set(["sunlight", "fertilize", "mist", "hug"]);
 const TAP_COUNT = 3;
@@ -54,6 +55,7 @@ interface Props {
 }
 
 export default function MissionInteractionModal({ mission, onComplete, onClose }: Props) {
+  const dialogRef = useDialogFocus(true, onClose);
   const isHold = HOLD_MISSIONS.has(mission.id);
   const [taps, setTaps] = useState(0);
   const [holdProgress, setHoldProgress] = useState(0);
@@ -94,7 +96,7 @@ export default function MissionInteractionModal({ mission, onComplete, onClose }
   }, [done, finish]);
 
   const startHold = useCallback(() => {
-    if (done) return;
+    if (done || intervalRef.current) return;
     startRef.current = Date.now();
     intervalRef.current = setInterval(() => {
       const elapsed = Date.now() - (startRef.current ?? Date.now());
@@ -109,6 +111,7 @@ export default function MissionInteractionModal({ mission, onComplete, onClose }
 
   const endHold = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = null;
     if (!doneRef.current) setHoldProgress(0);
   }, []);
 
@@ -128,11 +131,12 @@ export default function MissionInteractionModal({ mission, onComplete, onClose }
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-end transition-all duration-300 ${mounted ? "bg-black/50 backdrop-blur-sm" : "bg-transparent"}`}
+      className={`fixed inset-0 z-50 flex items-end transition-opacity duration-200 ${mounted ? "bg-black/50 backdrop-blur-sm" : "bg-transparent"}`}
       onClick={onClose}
     >
       <div
-        className={`relative w-full bg-gradient-to-b ${theme.gradient} to-white dark:to-gray-900 rounded-t-3xl shadow-2xl transition-transform duration-300 ${mounted ? "translate-y-0" : "translate-y-full"}`}
+        ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="mission-title" tabIndex={-1}
+        className={`relative w-full max-w-[430px] mx-auto max-h-[90dvh] overflow-y-auto bg-gradient-to-b ${theme.gradient} to-white dark:to-gray-900 rounded-t-3xl shadow-2xl transition-transform duration-200 ${mounted ? "translate-y-0" : "translate-y-full"}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Handle bar */}
@@ -140,31 +144,31 @@ export default function MissionInteractionModal({ mission, onComplete, onClose }
           <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
         </div>
 
-        <button onClick={onClose} className="absolute top-4 right-5 text-gray-400 hover:text-gray-600 text-2xl leading-none font-light">×</button>
+        <button onClick={onClose} aria-label="미션 닫기" className="absolute top-2 right-3 text-2xl leading-none font-light" style={{ color: 'var(--toss-on-surface-variant)' }}>×</button>
 
         {/* Mission info */}
         <div className="text-center pt-4 pb-6 px-6">
-          <div className={`text-7xl mb-3 inline-block transition-all duration-500 ${done ? "scale-125" : "animate-bounce"}`}
+          <div aria-hidden="true" className={`mission-symbol text-7xl mb-3 inline-block transition-transform duration-200 ${done ? "scale-125" : "animate-bounce"}`}
             style={{ animationDuration: "2s" }}>
             {mission.emoji}
           </div>
-          <p className="text-xl font-bold text-gray-800 dark:text-white">{mission.label}</p>
-          <p className="text-sm font-semibold text-emerald-500 mt-1">+{mission.xpReward} XP</p>
+          <h2 id="mission-title" className="text-xl font-bold text-gray-800 dark:text-white">{mission.label}</h2>
+          <p className="text-sm font-semibold mt-1" style={{ color: 'var(--toss-secondary)' }}>+{mission.xpReward} XP</p>
         </div>
 
         {/* Interaction area */}
-        <div className="flex flex-col items-center pb-16 px-6 min-h-[220px] justify-center">
+        <div className="mission-interaction flex flex-col items-center pb-8 px-6 min-h-[220px] justify-center">
           {done ? (
-            <div className="flex flex-col items-center gap-3 animate-fade-in-up">
+            <div className="flex flex-col items-center gap-3 animate-fade-in-up" role="status">
               <div className="text-5xl">✅</div>
               <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">완료!</p>
-              <p className="text-sm text-gray-400">잘 돌봐줬어요 💚</p>
+              <p className="text-sm" style={{ color: 'var(--toss-on-surface-variant)' }}>잘 돌봐줬어요 💚</p>
             </div>
           ) : isHold ? (
             <div className="flex flex-col items-center gap-4">
               {/* Hold: circular progress ring */}
               <div className="relative w-40 h-40">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                <svg role="progressbar" aria-label="누르기 진행" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(holdProgress * 100)} className="w-full h-full -rotate-90" viewBox="0 0 120 120">
                   <circle cx="60" cy="60" r={R} fill="none" stroke="#e5e7eb" strokeWidth="8" />
                   <circle
                     cx="60" cy="60" r={R}
@@ -173,21 +177,21 @@ export default function MissionInteractionModal({ mission, onComplete, onClose }
                     strokeLinecap="round"
                     strokeDasharray={circumference}
                     strokeDashoffset={circumference * (1 - holdProgress)}
-                    style={{ transition: "stroke-dashoffset 16ms linear" }}
                   />
                 </svg>
                 <button
-                  className="absolute inset-3 rounded-full bg-white dark:bg-gray-800 shadow-lg flex items-center justify-center text-5xl select-none active:scale-95 transition-transform touch-none"
-                  onMouseDown={startHold}
-                  onMouseUp={endHold}
-                  onMouseLeave={endHold}
-                  onTouchStart={startHold}
-                  onTouchEnd={endHold}
+                  className="absolute inset-3 rounded-full bg-white dark:bg-gray-800 shadow-lg flex items-center justify-center text-5xl select-none touch-none"
+                  aria-label={HINT[mission.id]} aria-describedby="mission-instruction"
+                  onPointerDown={e => { e.preventDefault(); e.currentTarget.focus(); e.currentTarget.setPointerCapture?.(e.pointerId); startHold(); }}
+                  onPointerUp={endHold} onPointerCancel={endHold} onLostPointerCapture={endHold} onBlur={endHold}
+                  onContextMenu={e => e.preventDefault()}
+                  onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!e.repeat) startHold(); } }}
+                  onKeyUp={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); endHold(); } }}
                 >
                   {mission.emoji}
                 </button>
               </div>
-              <p className="text-sm text-gray-400 dark:text-gray-500">{HINT[mission.id]}</p>
+              <p id="mission-instruction" className="text-sm text-center" style={{ color: 'var(--toss-on-surface-variant)' }}>{HINT[mission.id]}<span className="sr-only">. 스페이스 또는 Enter 키를 계속 눌러도 돼요</span></p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4">
@@ -195,7 +199,8 @@ export default function MissionInteractionModal({ mission, onComplete, onClose }
               <div className="relative w-40 h-40">
                 <button
                   onClick={handleTap}
-                  className="w-full h-full rounded-full bg-white dark:bg-gray-800 shadow-lg flex items-center justify-center text-6xl select-none active:scale-90 transition-transform duration-100"
+                  aria-label={HINT[mission.id]} aria-describedby="mission-instruction"
+                  className="w-full h-full rounded-full bg-white dark:bg-gray-800 shadow-lg flex items-center justify-center text-6xl select-none"
                 >
                   {mission.emoji}
                 </button>
@@ -210,7 +215,7 @@ export default function MissionInteractionModal({ mission, onComplete, onClose }
                 ))}
               </div>
               {/* Tap progress dots */}
-              <div className="flex gap-2.5 mt-1">
+              <div className="flex gap-2.5 mt-1" aria-hidden="true">
                 {Array.from({ length: TAP_COUNT }).map((_, i) => (
                   <div
                     key={i}
@@ -218,7 +223,7 @@ export default function MissionInteractionModal({ mission, onComplete, onClose }
                   />
                 ))}
               </div>
-              <p className="text-sm text-gray-400 dark:text-gray-500">
+              <p id="mission-instruction" className="text-sm text-center" role="status" style={{ color: 'var(--toss-on-surface-variant)' }}>
                 {taps === 0 ? HINT[mission.id] : `${TAP_COUNT - Math.min(taps, TAP_COUNT)}번 더!`}
               </p>
             </div>
