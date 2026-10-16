@@ -38,6 +38,8 @@ import { useTheme } from "@/lib/theme";
 import GrowthProgress from "@/components/GrowthProgress";
 import { useDialogFocus } from "@/hooks/useDialogFocus";
 
+type AppTab = 'home' | 'garden' | 'profile';
+
 // Render the current value immediately, then animate care-driven changes.
 function HeroXpBar({ xp, xpRequired }: { xp: number; xpRequired: number }) {
   return (
@@ -59,7 +61,7 @@ export default function HomePage() {
   const [justLeveledUp, setJustLeveledUp] = useState(false);
   const [careFeedback, setCareFeedback] = useState<GrowthFeedback | null>(null);
   const [showShare, setShowShare] = useState(false);
-  const [activeTab, setActiveTab] = useState<'home' | 'garden' | 'profile'>(() => {
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (typeof window !== 'undefined') {
       const tab = new URLSearchParams(window.location.search).get('tab');
       if (tab === 'garden' || tab === 'profile') return tab;
@@ -67,8 +69,22 @@ export default function HomePage() {
     return 'home';
   });
   const [growthEvent, setGrowthEvent] = useState<GrowthEvent | null>(null);
-  const navigateTab = useCallback((tab: 'home' | 'garden' | 'profile') => {
+  const activeTabRef = useRef(activeTab);
+  const tabHistoryRef = useRef<AppTab[]>(
+    typeof window !== 'undefined' && Array.isArray(window.history.state?.__plantyTabHistory)
+      ? window.history.state.__plantyTabHistory.filter((tab: unknown): tab is AppTab => tab === 'home' || tab === 'garden' || tab === 'profile')
+      : []
+  );
+  const navigateTab = useCallback((tab: AppTab, remember = true) => {
+    if (tab === activeTabRef.current) return;
+    if (remember) tabHistoryRef.current.push(activeTabRef.current);
+    activeTabRef.current = tab;
     setActiveTab(tab);
+    const url = new URL(window.location.href);
+    if (tab === 'home') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', tab);
+    // 약관/개인정보 화면에서 돌아올 때 직전 탭을 복원한다. Next의 history.state는 보존한다.
+    window.history.replaceState({ ...window.history.state, __plantyTabHistory: [...tabHistoryRef.current] }, '', url);
     window.scrollTo(0, 0);
   }, []);
   const { theme, toggle } = useTheme();
@@ -167,7 +183,9 @@ const { toast, openToast } = useToast();
     if (editingName) { setEditingName(false); return true; }
     if (showShare) { setShowShare(false); return true; }
     if (missionBackRef.current?.()) return true; // 미션 인터랙션 모달
-    if (activeTab === 'garden' || activeTab === 'profile') { navigateTab('home'); return true; }
+    const previousTab = tabHistoryRef.current.pop();
+    if (previousTab) { navigateTab(previousTab, false); return true; }
+    if (activeTab === 'garden' || activeTab === 'profile') { navigateTab('home', false); return true; }
     return false;
   }; }, [onboarded, milestone, showPestModal, editingName, showShare, activeTab, navigateTab]);
   useEffect(() => installHistoryBack(() => historyBackRef.current()), []);
@@ -364,11 +382,8 @@ const { toast, openToast } = useToast();
 
   return (
     <div className="min-h-screen nature-page app-shell">
-      {/* ── Header ── */}
-      <header className="sticky top-0 max-w-[430px] mx-auto z-50 toss-nav-bg backdrop-blur-xl"
-        style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.05)" }}
-      >
-        <div className="flex items-start justify-between gap-3 px-5 py-3 min-h-14">
+      <section className="mx-4 pt-4" aria-label="식물 요약">
+        <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <h1
             className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xl font-black tracking-tight leading-tight"
@@ -408,7 +423,7 @@ const { toast, openToast } = useToast();
           </div>
         </div>
         {/* streak / badges sub-row */}
-        <div className="flex items-center gap-2 px-5 pb-2 flex-wrap">
+        <div className="flex items-center gap-2 pb-2 flex-wrap">
           <span className="text-sm font-semibold" style={{ color: "var(--color-warning)" }}>🔥 {plant.streak}일 연속</span>
           {plant.streakShields > 0 && (
             <span className="text-sm px-2 py-0.5 rounded-full font-medium"
@@ -425,7 +440,7 @@ const { toast, openToast } = useToast();
             </span>
           )}
         </div>
-      </header>
+      </section>
       {saveFailed && (
         <section className="mx-4 mt-3 p-4 toss-card rounded-2xl" role="status" aria-label="기기 저장 안내">
           <p className="text-base font-semibold" style={{ color: "var(--toss-on-surface)" }}>기기에 기록을 저장하지 못했어요</p>

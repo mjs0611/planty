@@ -45,7 +45,6 @@ export default function Onboarding({ onStart, plantType = "green" }: Props) {
   }, [step]);
 
   const goNext = () => setStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
-  const goPrev = () => setStep(s => Math.max(s - 1, 0));
   const handleStart = () => onStart(name.trim() || undefined);
   const ctaLabel = step < TOTAL_STEPS - 1 ? "다음" : name.trim() ? `${name.trim()}와 함께 시작하기 🌱` : "시작하기 🌱";
 
@@ -63,29 +62,24 @@ export default function Onboarding({ onStart, plantType = "green" }: Props) {
         const dy = start.y - e.changedTouches[0].clientY;
         if (Math.abs(dx) <= Math.abs(dy)) return;
         if (dx > 48) goNext();
-        else if (dx < -48) goPrev();
       }}
       onTouchCancel={() => { touchStart.current = null; }}
     >
-      <header className="onboarding-progress">
-        {step > 0 ? <button onClick={goPrev} className="text-sm font-semibold">‹ 이전</button> : <span />}
-        <p aria-label={`온보딩 ${step + 1} / ${TOTAL_STEPS}단계`} className="text-sm font-semibold tabular-nums">{step + 1} / {TOTAL_STEPS}</p>
-        <span />
-      </header>
+      <p aria-label={`온보딩 ${step + 1} / ${TOTAL_STEPS}단계`} className="onboarding-progress text-sm font-semibold tabular-nums">{step + 1} / {TOTAL_STEPS}</p>
 
       {/* Only the current slide is mounted, keeping hidden inputs out of the tab order. */}
       <section className="onboarding-slide" aria-labelledby="onboarding-title" key={step}>
         {step === 0 && <>
-          <div className="text-center mb-8">
+          <div className="text-center mb-4">
             <h1 id="onboarding-title" ref={headingRef} tabIndex={-1} className="text-3xl font-extrabold tracking-tight">🌿 플랜티</h1>
-            <p className="text-base leading-relaxed mt-4" style={{ color: "var(--toss-on-surface-variant)" }}>
+            <p className="text-base leading-relaxed mt-2" style={{ color: "var(--toss-on-surface-variant)" }}>
               매일 조금씩 돌봐주는<br />나만의 가상 식물이에요
             </p>
           </div>
-          <div className="relative w-full max-w-[280px] aspect-square flex items-center justify-center mb-6">
+          <div className="w-full flex flex-wrap items-center justify-center gap-4 mb-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/plants/${plantType}/stage_1.png`} alt="화분 속 씨앗" className="w-4/5 h-4/5 object-contain drop-shadow-2xl animate-breathe" />
-            <div className="absolute bottom-0 right-0 flex items-center gap-3 rounded-2xl px-4 py-3 toss-card shadow-lg">
+            <img src={`/plants/${plantType}/stage_1.png`} alt="화분 속 씨앗" className="w-20 h-20 object-contain animate-breathe" />
+            <div className="flex items-center gap-3 rounded-2xl px-4 py-3 toss-card">
               <span aria-hidden="true" className="text-2xl">💧</span>
               <div>
                 <p className="text-sm font-semibold">수분</p>
@@ -98,10 +92,10 @@ export default function Onboarding({ onStart, plantType = "green" }: Props) {
         </>}
 
         {step === 1 && <>
-          <h1 id="onboarding-title" ref={headingRef} tabIndex={-1} className="text-2xl font-extrabold text-center mb-6">이렇게 키워요</h1>
-          <div className="w-full flex flex-col gap-3">
+          <h1 id="onboarding-title" ref={headingRef} tabIndex={-1} className="text-2xl font-extrabold text-center mb-4">이렇게 키워요</h1>
+          <div className="w-full flex flex-col gap-2">
             {FEATURES.map(f => (
-              <div key={f.emoji} className="flex items-start gap-3 rounded-2xl p-4 toss-card">
+              <div key={f.emoji} className="flex items-start gap-3 rounded-2xl p-3 toss-card">
                 <div aria-hidden="true" className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: "var(--toss-surface-low)" }}>{f.emoji}</div>
                 <div className="min-w-0">
                   <p className="text-base font-bold">{f.title}</p>
@@ -114,9 +108,9 @@ export default function Onboarding({ onStart, plantType = "green" }: Props) {
 
         {step === 2 && <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/plants/${plantType}/stage_1.png`} alt="씨앗" className="w-32 h-32 object-contain drop-shadow-lg mb-6 animate-breathe" />
+          <img src={`/plants/${plantType}/stage_1.png`} alt="씨앗" className="w-20 h-20 object-contain mb-4 animate-breathe" />
           <h1 id="onboarding-title" ref={headingRef} tabIndex={-1} className="text-2xl font-extrabold mb-2 text-center">이 씨앗에게<br />이름을 지어줄까요?</h1>
-          <p className="text-sm mb-6 text-center" style={{ color: "var(--toss-on-surface-variant)" }}>나중에 언제든 바꿀 수 있어요</p>
+          <p className="text-sm mb-4 text-center" style={{ color: "var(--toss-on-surface-variant)" }}>나중에 언제든 바꿀 수 있어요</p>
           <label htmlFor="onboarding-name" className="w-full text-sm font-semibold mb-2">식물 이름 (선택)</label>
           <div className="w-full relative">
             <input id="onboarding-name" ref={nameRef} value={name} onChange={e => setName(e.target.value)}

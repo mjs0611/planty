@@ -1,12 +1,14 @@
-import Link from "next/link";
+"use client";
+import { useEffect } from "react";
+import { installHistoryBack } from "@/lib/historyBack";
 
 export default function PrivacyPage() {
+  useEffect(() => installHistoryBack(), []);
   return (
     <div
-      className="min-h-screen px-5 py-10 max-w-lg mx-auto"
+      className="min-h-dvh px-5 py-4 max-w-lg mx-auto break-words"
       style={{ backgroundColor: "var(--toss-surface, #fbf9f8)", color: "var(--toss-on-surface, #1b1c1c)" }}
     >
-      <Link href="/?tab=profile" className="inline-flex items-center gap-2 text-sm font-semibold mb-4">‹ 프로필로 돌아가기</Link>
       {/* Header */}
       <div className="mb-8">
         <p className="text-sm font-black uppercase tracking-widest mb-1" style={{ color: "var(--toss-primary, #004ecb)" }}>

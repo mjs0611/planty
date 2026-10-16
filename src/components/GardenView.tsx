@@ -13,10 +13,8 @@ export default function GardenView({ plant, onCare }: { plant: PlantState; onCar
   return (
     <div className="pb-8 garden-view">
       <div className="mx-4 mt-3"><BannerAd /></div>
-      <header className="mx-4 mt-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-2xl font-extrabold">내 정원</h2>
-        <p className="text-sm font-semibold">{summary.collectedTypes}종 · {summary.completedPlants}그루</p>
-      </header>
+      <h2 className="mx-4 mt-4 text-2xl font-extrabold">내 정원</h2>
+      <p className="mx-4 mt-1 text-sm font-semibold">{summary.collectedTypes}종 · {summary.completedPlants}그루</p>
       <section className="mx-4 mt-3 toss-card rounded-2xl p-5" aria-label="정원에서 이어서 돌보기">
         <div className="garden-current">
           {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -1,7 +1,7 @@
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import Onboarding from '@/components/Onboarding';
+import Onboarding, { onboardingBack } from '@/components/Onboarding';
 import MiniWatering from '@/components/MiniWatering';
 import MissionInteractionModal from '@/components/MissionInteractionModal';
 import { useDialogFocus } from '@/hooks/useDialogFocus';
@@ -61,7 +61,7 @@ describe('onboarding navigation', () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '초록이');
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    click(buttonWithText('이전'));
+    act(() => { expect(onboardingBack?.()).toBe(true); });
     click(buttonWithText('다음'));
     expect(container.querySelector('input')?.value).toBe('초록이');
     click(container.querySelector<HTMLButtonElement>('[aria-label="식물 이름 지우기"]')!);
