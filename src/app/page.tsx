@@ -26,6 +26,7 @@ import BannerAd from "@/components/BannerAd";
 import Splash from "@/components/Splash";
 import Onboarding, { onboardingBack } from "@/components/Onboarding";
 import { installHistoryBack } from "@/lib/historyBack";
+import { installCardTilt } from "@/lib/cardTilt";
 import PlantMood from "@/components/PlantMood";
 import MiniWatering from "@/components/MiniWatering";
 import TimeSlotMissions from "@/components/TimeSlotMissions";
@@ -189,6 +190,8 @@ const { toast, openToast } = useToast();
     return false;
   }; }, [onboarded, milestone, showPestModal, editingName, showShare, activeTab, navigateTab]);
   useEffect(() => installHistoryBack(() => historyBackRef.current()), []);
+  // 홈 카드를 누르면 손가락 쪽으로 기운다. 식물 쓰다듬기·벌레 잡기는 제외(data-no-tilt).
+  useEffect(() => installCardTilt('.home-hero, .home-garden-link'), []);
 
   const handleMissionComplete = useCallback((slotId: string) => {
     const plant = plantRef.current;
@@ -497,7 +500,7 @@ const { toast, openToast } = useToast();
 
       {/* Hero Card */}
       <div
-        className="mx-4 mt-3 toss-card rounded-3xl relative overflow-hidden"
+        className="home-hero mx-4 mt-3 toss-card rounded-3xl relative overflow-hidden"
         style={{ boxShadow: "0 4px 24px -4px rgba(0,78,203,0.06)" }}
       >
         {creature && (
@@ -544,7 +547,7 @@ const { toast, openToast } = useToast();
         )}
 
         {/* 식물 캐릭터 (가운데 크게) */}
-        <div className="relative flex justify-center pt-2 pb-0">
+        <div className="relative flex justify-center pt-2 pb-0" data-no-tilt>
           <PlantDisplay
             stage={plant.stage}
             plantType={plant.plantType}

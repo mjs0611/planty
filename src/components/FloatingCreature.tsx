@@ -55,7 +55,7 @@ export default function FloatingCreature({ creature, onTap, onPestTap }: Props) 
   const dismissed = tapped || expired;
 
   return (
-    <button type="button" aria-label={creature.isPest ? "해충 무료 보내기" : `${creature.label} 잡기`}
+    <button type="button" data-no-tilt aria-label={creature.isPest ? "해충 무료 보내기" : `${creature.label} 잡기`}
       className="floating-creature absolute z-20 cursor-pointer select-none min-h-11 min-w-11"
       style={{
         left: `${creature.x}%`,
