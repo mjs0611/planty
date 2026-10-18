@@ -84,7 +84,7 @@ export default function TimeSlotMissions({
               onClick={() => setActiveSlot(slot)}
               className="min-w-0 flex flex-col items-center justify-center gap-1 text-center py-2 rounded-xl text-sm font-bold"
               style={{
-                backgroundColor: isActive ? "var(--toss-card-bg, #ffffff)" : "transparent",
+                backgroundColor: isActive ? "var(--toss-card-bg)" : "transparent",
                 color: isActive
                   ? "var(--toss-on-surface, #1b1c1c)"
                   : slotDone

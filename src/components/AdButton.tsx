@@ -31,7 +31,7 @@ export default function AdButton({ onAdComplete, getOwnerKey, isEligible, canRew
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} disabled={disabled}
-        className="w-full min-h-12 rounded-2xl p-3 text-left border active:scale-[0.99] disabled:opacity-60"
+        className="w-full min-h-12 rounded-2xl px-4 py-3 text-left border active:scale-[0.99] disabled:cursor-default disabled:opacity-100"
         style={{ backgroundColor: "var(--toss-surface-low)", borderColor: "var(--toss-outline-variant)", color: "var(--toss-on-surface)" }}>
         <span className="block text-base font-bold">광고 보상 안내</span>
         <span className="block text-sm leading-relaxed mt-1" style={{ color: "var(--toss-on-surface-variant)" }}>

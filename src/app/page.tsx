@@ -570,11 +570,8 @@ const { toast, openToast } = useToast();
         </div>
         {/* XP bar */}
         {!plant.isDead && plant.stage !== 'special' && (
-          <div className="px-5 pb-2">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-sm font-bold tracking-wide" style={{ color: "var(--toss-primary)" }}>성장 XP</span>
-              <span className="text-sm font-semibold" style={{ color: "var(--toss-on-surface-variant)" }}>{plant.xp} / {plant.xpRequired}</span>
-            </div>
+          <div className="px-5 pb-3">
+            {/* The goal row above already states the remaining XP; the bar alone shows progress. */}
             <HeroXpBar xp={plant.xp} xpRequired={plant.xpRequired} />
           </div>
         )}
@@ -602,10 +599,10 @@ const { toast, openToast } = useToast();
                       : "var(--toss-surface-low)",
                   }}
                 >
-                  <span className="text-base">{emoji}</span>
-                  <p className="text-sm font-bold tracking-tight" style={{ color: isCritical ? "var(--color-danger)" : isWarn ? "var(--color-warning)" : "var(--toss-on-surface-variant)" }}>{label}</p>
-                  <p className="text-sm font-extrabold" style={{ color: isCritical ? "var(--color-danger)" : isWarn ? "var(--color-warning)" : "var(--toss-on-surface)" }}>{display}</p>
-                  {isCritical && <span className="text-sm font-bold" style={{ color: "var(--color-danger)" }}>돌봄 필요</span>}
+                  <p className="text-sm font-bold whitespace-nowrap" style={{ color: isCritical ? "var(--color-danger)" : isWarn ? "var(--color-warning)" : "var(--toss-on-surface-variant)" }}><span aria-hidden="true">{emoji} </span>{label}</p>
+                  <p className="text-sm font-extrabold whitespace-nowrap" style={{ color: isCritical ? "var(--color-danger)" : isWarn ? "var(--color-warning)" : "var(--toss-on-surface)" }}>{display}</p>
+                  {/* "위험" already says it; only percentages need the extra words. */}
+                  {isCritical && display !== "위험" && <span className="text-sm font-bold whitespace-nowrap" style={{ color: "var(--color-danger)" }}>돌봄 필요</span>}
                 </div>
               );
             })}

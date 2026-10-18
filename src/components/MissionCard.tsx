@@ -63,7 +63,7 @@ export default function MissionCard({ mission, isCompleted, onSelect }: Props) {
       ) : (
         <span
           className="text-sm font-bold px-3 py-2 rounded-[8px] flex-shrink-0 transition-transform"
-          style={{ backgroundColor: "var(--toss-surface-low)", color: "var(--toss-on-surface-variant)" }}
+          style={{ backgroundColor: "var(--toss-surface-high)", color: "var(--toss-on-surface-variant)" }}
         >
           하기
         </span>
