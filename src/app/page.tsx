@@ -35,7 +35,6 @@ import GardenView from "@/components/GardenView";
 import FloatingCreature, { Creature } from "@/components/FloatingCreature";
 import PestModal from "@/components/PestModal";
 import ProfilePage from "@/components/ProfilePage";
-import { useTheme } from "@/lib/theme";
 import GrowthProgress from "@/components/GrowthProgress";
 import { useDialogFocus } from "@/hooks/useDialogFocus";
 
@@ -50,7 +49,7 @@ function HeroXpBar({ xp, xpRequired }: { xp: number; xpRequired: number }) {
         className="progress-fill h-full rounded-full"
         style={{
           transform: `scaleX(${Math.min(xp / xpRequired, 1)})`,
-          background: "linear-gradient(to right, #004ecb, #0064ff)",
+          background: "var(--primary)",
         }}
       />
     </div>
@@ -88,7 +87,6 @@ export default function HomePage() {
     window.history.replaceState({ ...window.history.state, __plantyTabHistory: [...tabHistoryRef.current] }, '', url);
     window.scrollTo(0, 0);
   }, []);
-  const { theme, toggle } = useTheme();
   const [onboarded, setOnboarded] = useState(true);
   const [creature, setCreature] = useState<Creature | null>(null);
   const [showPestModal, setShowPestModal] = useState(false);
@@ -406,14 +404,6 @@ const { toast, openToast } = useToast();
         </div>
           <div className="flex shrink-0 items-center gap-1">
             <button
-              onClick={toggle}
-              aria-label={theme === "dark" ? "밝은 테마로 바꾸기" : "어두운 테마로 바꾸기"}
-              className="p-2 rounded-full transition-colors"
-              style={{ color: "var(--toss-on-surface-variant)" }}
-            >
-              {theme === "dark" ? "☀️" : "🌙"}
-            </button>
-            <button
               onClick={() => { setShowShare(true); logEvent("share_open", { stage: plant.stage }); }}
               aria-label="공유 화면 열기"
               className="relative p-2 rounded-full transition-colors"
@@ -659,8 +649,6 @@ const { toast, openToast } = useToast();
       {activeTab === 'profile' && (
         <ProfilePage
           plant={plant}
-          theme={theme}
-          onToggleTheme={toggle}
           onRecover={handleRecover}
         />
       )}
@@ -697,7 +685,7 @@ const { toast, openToast } = useToast();
             <p className="text-lg font-bold" style={{ color: "var(--toss-secondary)" }}>+{milestone.bonusXp} XP 보너스!</p>
             <button
               className="mt-5 w-full py-3 font-bold rounded-2xl text-white"
-              style={{ background: "linear-gradient(135deg, #004ecb, #0064ff)" }}
+              style={{ background: "var(--primary)" }}
               onClick={() => setMilestone(null)}
             >
               계속 키우기 🌱
@@ -741,7 +729,7 @@ const { toast, openToast } = useToast();
               </button>
               <button
                 className="flex-1 py-3 rounded-2xl font-bold text-white"
-                style={{ background: "linear-gradient(135deg, #004ecb, #0064ff)" }}
+                style={{ background: "var(--primary)" }}
                 onClick={handleSaveName}
               >
                 저장하기

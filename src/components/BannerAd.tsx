@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { TossAds } from "@apps-in-toss/web-framework";
-import { useTheme } from "@/lib/theme";
 
 const AD_GROUP_ID = process.env.NEXT_PUBLIC_TOSS_BANNER_AD_GROUP_ID ?? "";
 let initialized = false;
@@ -24,7 +23,6 @@ export default function BannerAd({ className }: { className?: string }) {
   const [visible, setVisible] = useState(true);
   // isSupported를 state로 관리해 마운트 후 프레임워크 준비 여부 재확인
   const [isSupported, setIsSupported] = useState(false);
-  const { theme } = useTheme();
 
   // 마운트 직후 지원 여부 확인 (프레임워크 초기화 완료 시점 대응)
   useEffect(() => {
@@ -71,7 +69,7 @@ export default function BannerAd({ className }: { className?: string }) {
     tryInitialize();
     try {
       const result = TossAds.attachBanner(AD_GROUP_ID, containerRef.current, {
-        theme: theme === "dark" ? "dark" : "light",
+        theme: "light",
         tone: "blackAndWhite",
         variant: "expanded",
         callbacks: {
@@ -88,7 +86,7 @@ export default function BannerAd({ className }: { className?: string }) {
       destroyRef.current?.();
       destroyRef.current = null;
     };
-  }, [theme, isSupported]);
+  }, [isSupported]);
 
   if (!visible) return null;
 

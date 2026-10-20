@@ -7,8 +7,6 @@ import Link from "next/link";
 
 interface Props {
   plant: PlantState;
-  theme: "light" | "dark";
-  onToggleTheme: () => void;
   onRecover: () => void;
 }
 
@@ -60,7 +58,7 @@ function SettingRow({
   );
 }
 
-export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: Props) {
+export default function ProfilePage({ plant, onRecover }: Props) {
   const typeInfo = PLANT_TYPE_INFO[plant.plantType];
   const stageInfo = STAGE_INFO[plant.stage];
   const progress = Math.round((plant.xp / plant.xpRequired) * 100);
@@ -101,7 +99,7 @@ export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: 
                   className="progress-fill h-full rounded-full"
                   style={{
                     transform: `scaleX(${Math.min(progress, 100) / 100})`,
-                    background: "linear-gradient(to right, #004ecb, #0064ff)",
+                    background: "var(--primary)",
                   }}
                 />
               </div>
@@ -127,13 +125,6 @@ export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: 
             설정
           </p>
         </div>
-        <SettingRow
-          label="다크모드"
-          value={theme === "dark" ? "켜짐 🌙" : "꺼짐 ☀️"}
-          checked={theme === "dark"}
-          onClick={onToggleTheme}
-        />
-        <div style={{ height: 1, backgroundColor: "var(--toss-surface-high)" }} className="mx-4" />
         <SettingRow label="개인정보 처리방침" href="/privacy" />
         <div style={{ height: 1, backgroundColor: "var(--toss-surface-high)" }} className="mx-4" />
         <SettingRow label="이용약관" href="/terms" />

@@ -4,7 +4,7 @@ export default defineConfig({
   appName: "planty",
 
   brand: {
-    primaryColor: "#3182F6"
+    primaryColor: "#1B64DA"
   },
 
   permissions: [],
