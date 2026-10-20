@@ -4,6 +4,7 @@ import { PlantState } from "@/types/plant";
 import { STAGE_INFO, getPlantImage, getAllMissionIds } from "@/lib/plantState";
 import { useState } from "react";
 import { nativeShare } from "@/lib/bridge";
+import { getTossShareLink } from "@apps-in-toss/web-framework";
 
 interface Props {
   plant: PlantState;
@@ -14,9 +15,13 @@ export default function ShareSheet({ plant, onClose }: Props) {
   const [shared, setShared] = useState(false);
   const info = STAGE_INFO[plant.stage];
 
-  const shareText = `🌿 플랜티\n나의 식물이 "${info.name}" 단계에 도달했어요!\n🔥 ${plant.streak}일 연속 케어 중\n💧 ${plant.stats.water}  ☀️ ${plant.stats.sunlight}  💚 ${plant.stats.health}\n\n나도 식물 키워보기 → https://planty.vercel.app`;
-
   const handleShare = async () => {
+    let link = "intoss://planty";
+    try {
+      const tossLink = await getTossShareLink(link);
+      if (typeof tossLink === "string" && tossLink.trim()) link = tossLink.trim();
+    } catch { /* 공유 링크 생성 실패 시 미니앱 딥링크 유지 */ }
+    const shareText = `🌿 플랜티\n나의 식물이 "${info.name}" 단계에 도달했어요!\n🔥 ${plant.streak}일 연속 케어 중\n💧 ${plant.stats.water}  ☀️ ${plant.stats.sunlight}  💚 ${plant.stats.health}\n\n나도 식물 키워보기 → ${link}`;
     await nativeShare(shareText);
     setShared(true);
     setTimeout(() => setShared(false), 2000);
