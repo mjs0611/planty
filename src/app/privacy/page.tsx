@@ -11,7 +11,7 @@ export default function PrivacyPage() {
     >
       {/* Header */}
       <div className="mb-8">
-        <p className="text-sm font-black uppercase tracking-widest mb-1" style={{ color: "var(--toss-primary, #004ecb)" }}>
+        <p className="text-sm font-black uppercase tracking-widest mb-1" style={{ color: "var(--toss-primary, #1B64DA)" }}>
           Planty
         </p>
         <h1 className="text-2xl font-black" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>
@@ -34,7 +34,7 @@ export default function PrivacyPage() {
 
         {/* 제1장 */}
         <div>
-          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제1장 총칙</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #1B64DA)" }}>제1장 총칙</p>
           <div className="space-y-6">
             <section>
               <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제1조 (목적)</h2>
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
 
         {/* 제2장 */}
         <div>
-          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제2장 개인정보 수집 및 이용</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #1B64DA)" }}>제2장 개인정보 수집 및 이용</p>
           <div className="space-y-6">
             <section>
               <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제3조 (수집하는 개인정보)</h2>
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
                   "서비스 내 광고(Google AdMob)를 통해 수집되는 데이터는 각 광고 제공자의 개인정보처리방침에 따르며, 운영자는 해당 데이터에 접근하거나 보관하지 않습니다.",
                 ].map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
-                    <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #004ecb)" }}>{String(i + 1).padStart(2, "0")}</span>
+                    <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #1B64DA)" }}>{String(i + 1).padStart(2, "0")}</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -84,7 +84,7 @@ export default function PrivacyPage() {
                   "서비스 품질 개선을 위한 익명 통계 분석",
                 ].map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
-                    <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #004ecb)" }}>{String(i + 1).padStart(2, "0")}</span>
+                    <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #1B64DA)" }}>{String(i + 1).padStart(2, "0")}</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -102,7 +102,7 @@ export default function PrivacyPage() {
                   "서비스 내 '새 씨앗 심기' 기능을 통해 이용자가 직접 데이터를 초기화할 수 있습니다.",
                 ].map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
-                    <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #004ecb)" }}>{String(i + 1).padStart(2, "0")}</span>
+                    <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #1B64DA)" }}>{String(i + 1).padStart(2, "0")}</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -113,7 +113,7 @@ export default function PrivacyPage() {
 
         {/* 제3장 */}
         <div>
-          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제3장 개인정보의 제공 및 위탁</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #1B64DA)" }}>제3장 개인정보의 제공 및 위탁</p>
           <div className="space-y-6">
             <section>
               <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제6조 (제3자 제공)</h2>
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
                   "단, 법령의 규정에 의거하거나 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우는 예외로 합니다.",
                 ].map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
-                    <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #004ecb)" }}>{String(i + 1).padStart(2, "0")}</span>
+                    <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #1B64DA)" }}>{String(i + 1).padStart(2, "0")}</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -137,7 +137,7 @@ export default function PrivacyPage() {
                   "운영자는 위탁 업무의 내용이 변경될 경우 본 방침을 통해 공지합니다.",
                 ].map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
-                    <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #004ecb)" }}>{String(i + 1).padStart(2, "0")}</span>
+                    <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #1B64DA)" }}>{String(i + 1).padStart(2, "0")}</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -148,7 +148,7 @@ export default function PrivacyPage() {
 
         {/* 제4장 */}
         <div>
-          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제4장 이용자의 권리</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #1B64DA)" }}>제4장 이용자의 권리</p>
           <section>
             <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제8조 (이용자의 권리 및 행사 방법)</h2>
             <ul className="space-y-2">
@@ -157,7 +157,7 @@ export default function PrivacyPage() {
                 "개인정보 처리와 관련한 문의, 열람, 정정·삭제 요청 및 불만은 아래 연락처로 접수할 수 있으며, 운영자는 지체 없이 처리합니다. (이메일: help.ditoaxis@gmail.com)",
               ].map((item, i) => (
                 <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
-                  <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #004ecb)" }}>{String(i + 1).padStart(2, "0")}</span>
+                  <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #1B64DA)" }}>{String(i + 1).padStart(2, "0")}</span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -167,7 +167,7 @@ export default function PrivacyPage() {
 
         {/* 제5장 */}
         <div>
-          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제5장 개인정보 보호 조치</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #1B64DA)" }}>제5장 개인정보 보호 조치</p>
           <section>
             <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제9조 (개인정보의 안전성 확보 조치)</h2>
             <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
@@ -180,7 +180,7 @@ export default function PrivacyPage() {
                 "광고 리워드 처리 시 이용자 식별 정보는 운영자에게 전달되지 않습니다.",
               ].map((item, i) => (
                 <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
-                  <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #004ecb)" }}>{String(i + 1).padStart(2, "0")}</span>
+                  <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #1B64DA)" }}>{String(i + 1).padStart(2, "0")}</span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -190,7 +190,7 @@ export default function PrivacyPage() {
 
         {/* 제6장 */}
         <div>
-          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제6장 방침의 변경</p>
+          <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #1B64DA)" }}>제6장 방침의 변경</p>
           <section>
             <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제10조 (개인정보처리방침의 변경)</h2>
             <ul className="space-y-2">
@@ -199,7 +199,7 @@ export default function PrivacyPage() {
                 "변경된 방침은 공지한 시행일부터 효력이 발생합니다.",
               ].map((item, i) => (
                 <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
-                  <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #004ecb)" }}>{String(i + 1).padStart(2, "0")}</span>
+                  <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #1B64DA)" }}>{String(i + 1).padStart(2, "0")}</span>
                   <span>{item}</span>
                 </li>
               ))}
