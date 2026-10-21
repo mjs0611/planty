@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HomePage from '@/app/page';
 import TermsPage from '@/app/terms/page';
 import PrivacyPage from '@/app/privacy/page';
-import { ONBOARDED_KEY } from '@/lib/constants';
 
 const sdk = vi.hoisted(() => ({ listeners: new Set<() => void>(), closeView: vi.fn(async () => {}) }));
 vi.mock('@apps-in-toss/web-framework', () => ({
@@ -63,32 +62,7 @@ afterEach(() => {
 });
 
 describe('screen back routing', () => {
-  it('routes native back through onboarding without losing the typed name', async () => {
-    render(<HomePage />);
-    clickText('다음');
-    clickText('다음');
-    const input = container.querySelector('input')!;
-    act(() => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '초록이');
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    expect(container.querySelector('header')).toBeNull();
-    expect(container.textContent).not.toContain('이전');
-    nativeBack();
-    expect(container.textContent).toContain('2 / 3');
-    expect(document.activeElement?.textContent).toBe('이렇게 키워요');
-    clickText('다음');
-    expect(container.querySelector('input')?.value).toBe('초록이');
-    nativeBack();
-    nativeBack();
-    expect(container.textContent).toContain('1 / 3');
-    expect(sdk.closeView).not.toHaveBeenCalled();
-    await act(async () => { nativeBack(); });
-    expect(sdk.closeView).toHaveBeenCalledOnce();
-  });
-
   it('returns through visited tabs, preserving their URLs, before closing at home', async () => {
-    localStorage.setItem(ONBOARDED_KEY, 'true');
     render(<HomePage />);
     expect(container.querySelector('header')).toBeNull();
     clickText('정원', 'nav button');
@@ -107,7 +81,6 @@ describe('screen back routing', () => {
   });
 
   it('dismisses sharing, name editing, and a mission before leaving the current tab', () => {
-    localStorage.setItem(ONBOARDED_KEY, 'true');
     render(<HomePage />);
     click(container.querySelector<HTMLButtonElement>('[aria-label="공유 화면 열기"]')!);
     expect(container.querySelector('[role="dialog"]')).not.toBeNull();
@@ -131,7 +104,6 @@ describe('screen back routing', () => {
     ['/terms', TermsPage, '서비스 이용약관'],
     ['/privacy', PrivacyPage, '개인정보처리방침'],
   ] as const)('returns from %s to the profile even when the home component remounts', async (pathname, Page, title) => {
-    localStorage.setItem(ONBOARDED_KEY, 'true');
     render(<HomePage />);
     clickText('정원', 'nav button');
     clickText('프로필', 'nav button');

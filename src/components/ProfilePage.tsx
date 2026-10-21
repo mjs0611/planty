@@ -7,8 +7,7 @@ import Link from "next/link";
 
 interface Props {
   plant: PlantState;
-  theme: "light" | "dark";
-  onToggleTheme: () => void;
+  onEditName: () => void;
   onRecover: () => void;
 }
 
@@ -22,7 +21,7 @@ function StatCard({ label, value, emoji }: { label: string; value: string | numb
       <p className="text-sm font-bold uppercase tracking-tight" style={{ color: "var(--toss-on-surface-variant)" }}>
         {label}
       </p>
-      <p className="text-lg font-extrabold" style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}>
+      <p className="text-lg font-extrabold" style={{ color: "var(--toss-on-surface)" }}>
         {value}
       </p>
     </div>
@@ -51,7 +50,7 @@ function SettingRow({
   return (
     <button
       className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
-      role="switch" aria-checked={checked}
+      role={checked === undefined ? undefined : "switch"} aria-checked={checked}
       aria-label={label}
       onClick={onClick}
     >
@@ -60,7 +59,7 @@ function SettingRow({
   );
 }
 
-export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: Props) {
+export default function ProfilePage({ plant, onEditName, onRecover }: Props) {
   const typeInfo = PLANT_TYPE_INFO[plant.plantType];
   const stageInfo = STAGE_INFO[plant.stage];
   const progress = Math.round((plant.xp / plant.xpRequired) * 100);
@@ -87,7 +86,7 @@ export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: 
           <div className="flex-1 min-w-0">
             <p
               className="text-xl font-black [overflow-wrap:anywhere]"
-              style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}
+              style={{ color: "var(--toss-on-surface)" }}
             >
               {plant.name || stageInfo.name}
             </p>
@@ -101,7 +100,7 @@ export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: 
                   className="progress-fill h-full rounded-full"
                   style={{
                     transform: `scaleX(${Math.min(progress, 100) / 100})`,
-                    background: "linear-gradient(to right, #004ecb, #0064ff)",
+                    background: "#1B64DA",
                   }}
                 />
               </div>
@@ -127,12 +126,7 @@ export default function ProfilePage({ plant, theme, onToggleTheme, onRecover }: 
             설정
           </p>
         </div>
-        <SettingRow
-          label="다크모드"
-          value={theme === "dark" ? "켜짐 🌙" : "꺼짐 ☀️"}
-          checked={theme === "dark"}
-          onClick={onToggleTheme}
-        />
+        <SettingRow label="식물 이름" value={plant.name || "짓지 않음"} onClick={onEditName} />
         <div style={{ height: 1, backgroundColor: "var(--toss-surface-high)" }} className="mx-4" />
         <SettingRow label="개인정보 처리방침" href="/privacy" />
         <div style={{ height: 1, backgroundColor: "var(--toss-surface-high)" }} className="mx-4" />

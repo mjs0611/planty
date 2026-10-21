@@ -15,7 +15,7 @@ import { getMissionById, parseSlotId } from "@/lib/missions";
 import { haptic, logEvent } from "@/lib/bridge";
 import { PLANT_TYPE_INFO, getCurrentSeason, SEASON_INFO } from "@/lib/season";
 import { getCurrentWeather, WEATHER_INFO } from "@/lib/weather";
-import { ONBOARDED_KEY, COMBO_MILESTONES } from "@/lib/constants";
+import { COMBO_MILESTONES } from "@/lib/constants";
 import { useToast } from "@/hooks/useToast";
 import { useCreatureSpawner } from "@/hooks/useCreatureSpawner";
 import { useDebouncedSave } from "@/hooks/useDebouncedSave";
@@ -24,7 +24,6 @@ import AdButton from "@/components/AdButton";
 import ShareSheet from "@/components/ShareSheet";
 import BannerAd from "@/components/BannerAd";
 import Splash from "@/components/Splash";
-import Onboarding, { onboardingBack } from "@/components/Onboarding";
 import { installHistoryBack } from "@/lib/historyBack";
 import { installCardTilt } from "@/lib/cardTilt";
 import PlantMood from "@/components/PlantMood";
@@ -35,7 +34,6 @@ import GardenView from "@/components/GardenView";
 import FloatingCreature, { Creature } from "@/components/FloatingCreature";
 import PestModal from "@/components/PestModal";
 import ProfilePage from "@/components/ProfilePage";
-import { useTheme } from "@/lib/theme";
 import GrowthProgress from "@/components/GrowthProgress";
 import { useDialogFocus } from "@/hooks/useDialogFocus";
 
@@ -50,7 +48,7 @@ function HeroXpBar({ xp, xpRequired }: { xp: number; xpRequired: number }) {
         className="progress-fill h-full rounded-full"
         style={{
           transform: `scaleX(${Math.min(xp / xpRequired, 1)})`,
-          background: "linear-gradient(to right, #004ecb, #0064ff)",
+          background: "#1B64DA",
         }}
       />
     </div>
@@ -88,8 +86,6 @@ export default function HomePage() {
     window.history.replaceState({ ...window.history.state, __plantyTabHistory: [...tabHistoryRef.current] }, '', url);
     window.scrollTo(0, 0);
   }, []);
-  const { theme, toggle } = useTheme();
-  const [onboarded, setOnboarded] = useState(true);
   const [creature, setCreature] = useState<Creature | null>(null);
   const [showPestModal, setShowPestModal] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -109,8 +105,8 @@ export default function HomePage() {
     };
   }, []);
   useEffect(() => { if (activeTab !== 'home') adBackRef.current?.(); }, [activeTab]);
-  const nameDialogRef = useDialogFocus(editingName && onboarded && !!plant && !milestone && !adDialogOpen && !showShare && !showPestModal, () => setEditingName(false));
-  const milestoneDialogRef = useDialogFocus(!!milestone && onboarded && !!plant && !adDialogOpen && !showShare && !showPestModal, () => setMilestone(null));
+  const nameDialogRef = useDialogFocus(editingName && !!plant && !milestone && !adDialogOpen && !showShare && !showPestModal, () => setEditingName(false));
+  const milestoneDialogRef = useDialogFocus(!!milestone && !!plant && !adDialogOpen && !showShare && !showPestModal, () => setMilestone(null));
 
   // 최신 값을 핸들러에서 참조하기 위한 refs (stale closure 방지)
   const plantRef = useRef<PlantState | null>(null);
@@ -140,10 +136,6 @@ const { toast, openToast } = useToast();
   }, []);
 
   useEffect(() => {
-    let isOnboarded = false;
-    try { isOnboarded = localStorage.getItem(ONBOARDED_KEY) === "true"; } catch { /* Core care remains available without storage. */ }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore browser storage after hydration.
-    setOnboarded(isOnboarded);
     const { state, shieldConsumed } = loadState();
     const bonusResult = claimLoginBonus(state);
     let finalState = bonusResult ? bonusResult.state : state;
@@ -167,17 +159,9 @@ const { toast, openToast } = useToast();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleOnboardingStart = useCallback((plantName?: string) => {
-    try { localStorage.setItem(ONBOARDED_KEY, "true"); } catch { /* The save status explains persistence limits. */ }
-    setOnboarded(true);
-    const current = plantRef.current;
-    if (current) commitPlant({ ...current, ...(plantName ? { name: plantName } : {}) });
-  }, [commitPlant]);
-
-  // 토스 뒤로가기(히스토리 방식): 온보딩 단계 → 팝업 → 미션 모달 → 탭 → 홈에서만 미니앱 종료
+  // 토스 뒤로가기(히스토리 방식): 팝업 → 미션 모달 → 탭 → 홈에서만 미니앱 종료
   const historyBackRef = useRef<() => boolean>(() => false);
   useEffect(() => { historyBackRef.current = () => {
-    if (!onboarded) return onboardingBack?.() ?? false;
     if (adBackRef.current) { adBackRef.current(); return true; }
     if (milestone) { setMilestone(null); return true; }
     if (showPestModal) { creatureRef.current = null; setCreature(null); setShowPestModal(false); return true; }
@@ -188,10 +172,10 @@ const { toast, openToast } = useToast();
     if (previousTab) { navigateTab(previousTab, false); return true; }
     if (activeTab === 'garden' || activeTab === 'profile') { navigateTab('home', false); return true; }
     return false;
-  }; }, [onboarded, milestone, showPestModal, editingName, showShare, activeTab, navigateTab]);
+  }; }, [milestone, showPestModal, editingName, showShare, activeTab, navigateTab]);
   useEffect(() => installHistoryBack(() => historyBackRef.current()), []);
-  // 홈 카드를 누르면 손가락 쪽으로 기운다. 식물 쓰다듬기·벌레 잡기는 제외(data-no-tilt).
-  useEffect(() => installCardTilt('.home-hero, .home-garden-link'), []);
+  // 정원 바로가기 카드만 손가락 쪽으로 기운다. 식물 카드는 읽기 전용이라 제외.
+  useEffect(() => installCardTilt('.home-garden-link'), []);
 
   const handleMissionComplete = useCallback((slotId: string) => {
     const plant = plantRef.current;
@@ -381,7 +365,6 @@ const { toast, openToast } = useToast();
 
   // ── Render guards ───────────────────────────────────────────
   if (!plant) return <Splash />;
-  if (!onboarded) return <Onboarding onStart={handleOnboardingStart} plantType={plant?.plantType} />;
 
   return (
     <div className="min-h-screen nature-page app-shell">
@@ -390,7 +373,7 @@ const { toast, openToast } = useToast();
         <div className="flex-1 min-w-0">
           <h1
             className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xl font-black tracking-tight leading-tight"
-            style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}
+            style={{ color: "var(--toss-on-surface)" }}
           >
             플랜티
             {plant.name && (
@@ -405,14 +388,6 @@ const { toast, openToast } = useToast();
           </h1>
         </div>
           <div className="flex shrink-0 items-center gap-1">
-            <button
-              onClick={toggle}
-              aria-label={theme === "dark" ? "밝은 테마로 바꾸기" : "어두운 테마로 바꾸기"}
-              className="p-2 rounded-full transition-colors"
-              style={{ color: "var(--toss-on-surface-variant)" }}
-            >
-              {theme === "dark" ? "☀️" : "🌙"}
-            </button>
             <button
               onClick={() => { setShowShare(true); logEvent("share_open", { stage: plant.stage }); }}
               aria-label="공유 화면 열기"
@@ -659,8 +634,7 @@ const { toast, openToast } = useToast();
       {activeTab === 'profile' && (
         <ProfilePage
           plant={plant}
-          theme={theme}
-          onToggleTheme={toggle}
+          onEditName={() => { setNameInput(plant.name ?? ''); setEditingName(true); }}
           onRecover={handleRecover}
         />
       )}
@@ -697,7 +671,7 @@ const { toast, openToast } = useToast();
             <p className="text-lg font-bold" style={{ color: "var(--toss-secondary)" }}>+{milestone.bonusXp} XP 보너스!</p>
             <button
               className="mt-5 w-full py-3 font-bold rounded-2xl text-white"
-              style={{ background: "linear-gradient(135deg, #004ecb, #0064ff)" }}
+              style={{ background: "#1B64DA" }}
               onClick={() => setMilestone(null)}
             >
               계속 키우기 🌱
@@ -741,7 +715,7 @@ const { toast, openToast } = useToast();
               </button>
               <button
                 className="flex-1 py-3 rounded-2xl font-bold text-white"
-                style={{ background: "linear-gradient(135deg, #004ecb, #0064ff)" }}
+                style={{ background: "#1B64DA" }}
                 onClick={handleSaveName}
               >
                 저장하기

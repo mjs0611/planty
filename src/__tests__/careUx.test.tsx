@@ -1,7 +1,6 @@
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import Onboarding, { onboardingBack } from '@/components/Onboarding';
 import MiniWatering from '@/components/MiniWatering';
 import MissionInteractionModal from '@/components/MissionInteractionModal';
 import { useDialogFocus } from '@/hooks/useDialogFocus';
@@ -34,41 +33,6 @@ const buttonWithText = (text: string) => {
   if (!button) throw new Error(`Missing button: ${text}`);
   return button;
 };
-
-describe('onboarding navigation', () => {
-  it('exposes numeric progress and only the current slide, focusing the next title', () => {
-    const onStart = vi.fn();
-    render(<Onboarding onStart={onStart} />);
-    expect(container.textContent).toContain('1 / 3');
-    expect(container.querySelector('input')).toBeNull();
-    expect(container.textContent).toContain('수분');
-    click(buttonWithText('다음'));
-    expect(container.textContent).toContain('2 / 3');
-    expect(document.activeElement?.textContent).toBe('이렇게 키워요');
-    click(buttonWithText('다음'));
-    expect(container.textContent).toContain('3 / 3');
-    expect(container.querySelector('label')?.htmlFor).toBe(container.querySelector('input')?.id);
-    click(buttonWithText('이름 없이 시작하기'));
-    expect(onStart).toHaveBeenCalledExactlyOnceWith(undefined);
-  });
-
-  it('keeps an entered name when going back, and returns focus after clearing it', () => {
-    render(<Onboarding onStart={vi.fn()} />);
-    click(buttonWithText('다음'));
-    click(buttonWithText('다음'));
-    const input = container.querySelector('input')!;
-    act(() => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '초록이');
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    act(() => { expect(onboardingBack?.()).toBe(true); });
-    click(buttonWithText('다음'));
-    expect(container.querySelector('input')?.value).toBe('초록이');
-    click(container.querySelector<HTMLButtonElement>('[aria-label="식물 이름 지우기"]')!);
-    expect(container.querySelector('input')?.value).toBe('');
-    expect(document.activeElement).toBe(container.querySelector('input'));
-  });
-});
 
 describe('watering feedback', () => {
   beforeEach(() => {

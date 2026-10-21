@@ -52,7 +52,7 @@ export default function TimeSlotMissions({
       <div className="flex items-center justify-between px-6 pt-5 pb-3">
         <h2 id="missions-title"
           className="text-lg font-black"
-          style={{ color: "var(--toss-on-surface)", fontFamily: "var(--font-headline, sans-serif)" }}
+          style={{ color: "var(--toss-on-surface)" }}
         >
           오늘의 미션
         </h2>

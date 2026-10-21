@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
-/* class-based dark mode */
+/* 라이트 모드만 쓴다. dark: 유틸이 OS 설정에 반응하지 않도록 클래스 기반으로 묶어 두되, .dark 클래스는 아무도 붙이지 않는다. */
 @variant dark (&:where(.dark, .dark *));
 
 :root {
   /* Toss Design System — Light */
-  --toss-primary: #004ecb;
-  --toss-primary-container: #0064ff;
+  --toss-primary: #1B64DA;
+  --toss-primary-container: #1B64DA;
   --toss-secondary: #006c49;
   --toss-secondary-fixed: #63fdbb;
   --toss-surface: #fbf9f8;
@@ -19,7 +19,7 @@
   --toss-card-bg: #ffffff;
 
   /* Legacy tokens (mapped to Toss values) */
-  --color-primary: #004ecb;
+  --color-primary: #1B64DA;
   --color-success: #006c49;
   --color-warning: #925000;
   --color-danger: #ba1a1a;
@@ -33,40 +33,13 @@
   --motion-ease: cubic-bezier(.2,.8,.2,1);
 }
 
-.dark {
-  --toss-primary: #b3c5ff;
-  --toss-primary-container: #4d88ff;
-  --toss-secondary: #3fe0a1;
-  --toss-secondary-fixed: #63fdbb;
-  --toss-surface: #0f1714;
-  --toss-surface-low: #141d17;
-  --toss-surface-lowest: #1a2620;
-  --toss-surface-high: #1e2e24;
-  --toss-on-surface: #e8f0ec;
-  --toss-on-surface-variant: #9aada2;
-  --toss-outline-variant: #2a3a31;
-  --toss-card-bg: #34503f;
-
-  --color-primary: #b3c5ff;
-  --color-success: #3fe0a1;
-  --color-warning: #ffcf80;
-  --color-danger: #ffb4ab;
-  --color-bg: #0f1714;
-  --color-surface: #1a2620;
-  --color-text: #e8f0ec;
-  --color-text-secondary: #9aada2;
-
-  --float-shadow-1: rgba(0,0,0,0.25);
-  --float-shadow-2: rgba(0,0,0,0.40);
-}
-
 @theme inline {
   --color-background: var(--color-bg);
   --color-foreground: var(--color-text);
 }
 
 html body {
-  font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
@@ -97,12 +70,8 @@ input { caret-color: var(--toss-primary); }
 .app-shell { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
 .bottom-navigation { bottom: calc(16px + env(safe-area-inset-bottom)); }
 
-.onboarding { min-height: 100dvh; display: flex; flex-direction: column; background: var(--toss-surface); color: var(--toss-on-surface); }
-.onboarding-progress { padding: 16px 20px 0; color: var(--toss-on-surface-variant); }
-.onboarding-slide { display: flex; flex-direction: column; align-items: center; padding: 12px 20px 16px; overflow-wrap: anywhere; }
-.onboarding-footer { margin-top: auto; padding: 12px 20px max(16px, env(safe-area-inset-bottom)); }
 .primary-care-button, .secondary-care-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; padding: 16px; border-radius: 16px; font-size: 1rem; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
-.primary-care-button { background: linear-gradient(135deg, #004ecb, #0064ff); color: white; }
+.primary-care-button { background: #1B64DA; color: white; }
 .secondary-care-button { background: var(--toss-surface-low); color: var(--toss-primary); }
 .watering-action button:disabled { background: var(--toss-surface-high); color: var(--toss-on-surface-variant); cursor: default; }
 .watering-action button[data-completed="true"] { background: var(--toss-secondary); color: var(--toss-surface-lowest); }
@@ -116,14 +85,7 @@ input { caret-color: var(--toss-primary); }
 @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
 @keyframes care-pop { 0% { opacity: 0; transform: scale(.6); } 60% { opacity: 1; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
 
-.font-headline {
-  font-family: var(--font-headline, 'Plus Jakarta Sans', sans-serif);
-}
-
-/* Plus Jakarta Sans max weight is 800 — remap font-black to 800 */
-.font-black {
-  font-weight: 800;
-}
+.font-headline { font-family: inherit; }
 
 /* Safe area for fixed bottom elements */
 .safe-area-bottom {
@@ -151,48 +113,20 @@ input { caret-color: var(--toss-primary); }
   background: radial-gradient(ellipse at 50% 0%, rgba(0, 108, 73, 0.04) 0%, transparent 70%);
 }
 
-/* Dark mode ambient glow */
-.dark .nature-page::before {
-  background: radial-gradient(ellipse at 50% 0%, rgba(63, 224, 161, 0.06) 0%, transparent 70%);
-}
-
-.dark .nature-page::after {
-  content: "";
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 30vh;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 50% 100%, rgba(0, 78, 203, 0.04) 0%, transparent 70%);
-}
-
 /* Card utility — tonal layering, no explicit border */
 .glass-panel {
   background: var(--toss-surface-lowest);
   box-shadow: 0 2px 8px rgba(0, 78, 203, 0.04), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
-.dark .glass-panel {
-  background: var(--toss-surface-low);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
 
-/* Dark-mode-safe surface card */
+/* surface card */
 .toss-card {
   background-color: var(--toss-surface-lowest);
 }
-.dark .toss-card {
-  background-color: var(--toss-surface-low);
-  border: 1px solid rgba(154, 173, 162, 0.10);
-}
 
-/* Dark-mode-safe nav/header blur bg */
+/* nav/header blur bg */
 .toss-nav-bg {
   background-color: var(--toss-surface-lowest);
-}
-.dark .toss-nav-bg {
-  background-color: var(--toss-surface-high);
 }
 
 /* ── Animations ── */

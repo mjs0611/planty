@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         <p className="text-sm font-black uppercase tracking-widest mb-1" style={{ color: "var(--toss-primary, #004ecb)" }}>
           Planty
         </p>
-        <h1 className="text-2xl font-black" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>
+        <h1 className="text-2xl font-black">
           개인정보처리방침
         </h1>
         <p className="text-sm mt-1" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
@@ -37,13 +37,13 @@ export default function PrivacyPage() {
           <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제1장 총칙</p>
           <div className="space-y-6">
             <section>
-              <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제1조 (목적)</h2>
+              <h2 className="text-[15px] font-black mb-2">제1조 (목적)</h2>
               <p className="text-sm leading-relaxed" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
                 본 개인정보처리방침은 디토엑시스(이하 &quot;운영자&quot;)가 토스 앱인토스(Apps in Toss) 플랫폼을 통해 제공하는 플랜티(Planty) 서비스(이하 &quot;서비스&quot;) 이용 과정에서 이용자의 개인정보를 어떻게 수집·이용·보관·파기하는지 안내하기 위해 작성되었습니다.
               </p>
             </section>
             <section>
-              <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제2조 (개인정보 보호책임자)</h2>
+              <h2 className="text-[15px] font-black mb-2">제2조 (개인정보 보호책임자)</h2>
               <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
                 운영자는 개인정보 처리에 관한 업무를 총괄하는 개인정보 보호책임자를 지정합니다.
               </p>
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
           <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제2장 개인정보 수집 및 이용</p>
           <div className="space-y-6">
             <section>
-              <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제3조 (수집하는 개인정보)</h2>
+              <h2 className="text-[15px] font-black mb-2">제3조 (수집하는 개인정보)</h2>
               <ul className="space-y-2">
                 {[
                   "플랜티는 서버를 통한 개인정보를 수집하지 않습니다. 모든 게임 데이터(식물 성장 기록, XP, 미션 달성 내역, 스트릭, 스트릭 실드, 정원 수집 정보 등)는 이용자 기기의 로컬 저장소(localStorage)에만 저장됩니다.",
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
               </ul>
             </section>
             <section>
-              <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제4조 (개인정보의 이용 목적)</h2>
+              <h2 className="text-[15px] font-black mb-2">제4조 (개인정보의 이용 목적)</h2>
               <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>수집된 게임 데이터는 다음 목적으로만 이용됩니다.</p>
               <ul className="space-y-2">
                 {[
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
               </p>
             </section>
             <section>
-              <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제5조 (개인정보의 보유 및 파기)</h2>
+              <h2 className="text-[15px] font-black mb-2">제5조 (개인정보의 보유 및 파기)</h2>
               <ul className="space-y-2">
                 {[
                   "게임 데이터는 이용자 기기에만 저장되며, 이용자가 직접 삭제하거나 기기를 초기화하면 즉시 파기됩니다.",
@@ -116,7 +116,7 @@ export default function PrivacyPage() {
           <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제3장 개인정보의 제공 및 위탁</p>
           <div className="space-y-6">
             <section>
-              <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제6조 (제3자 제공)</h2>
+              <h2 className="text-[15px] font-black mb-2">제6조 (제3자 제공)</h2>
               <ul className="space-y-2">
                 {[
                   "플랜티는 이용자의 개인정보를 제3자에게 제공하지 않습니다.",
@@ -130,7 +130,7 @@ export default function PrivacyPage() {
               </ul>
             </section>
             <section>
-              <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제7조 (개인정보 처리 위탁)</h2>
+              <h2 className="text-[15px] font-black mb-2">제7조 (개인정보 처리 위탁)</h2>
               <ul className="space-y-2">
                 {[
                   "서비스 내 광고는 토스 앱인토스 광고 시스템(Google AdMob)을 통해 제공됩니다. 광고 관련 데이터 처리는 각 플랫폼의 정책에 따릅니다.",
@@ -150,7 +150,7 @@ export default function PrivacyPage() {
         <div>
           <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제4장 이용자의 권리</p>
           <section>
-            <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제8조 (이용자의 권리 및 행사 방법)</h2>
+            <h2 className="text-[15px] font-black mb-2">제8조 (이용자의 권리 및 행사 방법)</h2>
             <ul className="space-y-2">
               {[
                 "이용자는 언제든지 기기 내 게임 데이터를 직접 삭제할 수 있습니다. (서비스 내: 프로필 탭 → '새 씨앗 심기' / 기기 설정: 앱 데이터 삭제 또는 브라우저 캐시 삭제)",
@@ -169,7 +169,7 @@ export default function PrivacyPage() {
         <div>
           <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제5장 개인정보 보호 조치</p>
           <section>
-            <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제9조 (개인정보의 안전성 확보 조치)</h2>
+            <h2 className="text-[15px] font-black mb-2">제9조 (개인정보의 안전성 확보 조치)</h2>
             <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
               운영자는 개인정보의 안전성 확보를 위해 다음 조치를 취하고 있습니다.
             </p>
@@ -192,7 +192,7 @@ export default function PrivacyPage() {
         <div>
           <p className="text-sm font-black uppercase tracking-widest mb-4" style={{ color: "var(--toss-primary, #004ecb)" }}>제6장 방침의 변경</p>
           <section>
-            <h2 className="text-[15px] font-black mb-2" style={{ fontFamily: "var(--font-headline, sans-serif)" }}>제10조 (개인정보처리방침의 변경)</h2>
+            <h2 className="text-[15px] font-black mb-2">제10조 (개인정보처리방침의 변경)</h2>
             <ul className="space-y-2">
               {[
                 "본 방침이 변경되는 경우 시행일 7일 전(이용자에게 불리한 변경의 경우 30일 전) 서비스 내 공지를 통해 안내합니다.",
