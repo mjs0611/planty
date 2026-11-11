@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* 라이트 모드만 쓴다. dark: 유틸이 OS 설정에 반응하지 않도록 클래스 기반으로 묶어 두되, .dark 클래스는 아무도 붙이지 않는다. */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Toss Design System — Light */
   --primary: #1B64DA; --primary-pressed: #1957C2; --primary-weak: #E8F3FF; --on-primary: #FFFFFF; --toss-primary: var(--primary);
@@ -36,7 +39,7 @@
 }
 
 html body {
-  font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
@@ -67,10 +70,6 @@ input { caret-color: var(--toss-primary); }
 .app-shell { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
 .bottom-navigation { bottom: calc(16px + env(safe-area-inset-bottom)); }
 
-.onboarding { min-height: 100dvh; display: flex; flex-direction: column; background: var(--toss-surface); color: var(--toss-on-surface); }
-.onboarding-progress { padding: 16px 20px 0; color: var(--toss-on-surface-variant); }
-.onboarding-slide { display: flex; flex-direction: column; align-items: center; padding: 12px 20px 16px; overflow-wrap: anywhere; }
-.onboarding-footer { margin-top: auto; padding: 12px 20px max(16px, env(safe-area-inset-bottom)); }
 .primary-care-button, .secondary-care-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; padding: 16px; border-radius: 16px; font-size: 1rem; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
 .primary-care-button { background: var(--primary); color: white; }
 .secondary-care-button { background: var(--toss-surface-low); color: var(--toss-primary); }
@@ -86,14 +85,7 @@ input { caret-color: var(--toss-primary); }
 @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
 @keyframes care-pop { 0% { opacity: 0; transform: scale(.6); } 60% { opacity: 1; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
 
-.font-headline {
-  font-family: var(--font-headline, 'Plus Jakarta Sans', sans-serif);
-}
-
-/* Plus Jakarta Sans max weight is 800 — remap font-black to 800 */
-.font-black {
-  font-weight: 800;
-}
+.font-headline { font-family: inherit; }
 
 /* Safe area for fixed bottom elements */
 .safe-area-bottom {
@@ -127,12 +119,12 @@ input { caret-color: var(--toss-primary); }
   box-shadow: 0 2px 8px rgba(0, 78, 203, 0.04), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-/* Dark-mode-safe surface card */
+/* surface card */
 .toss-card {
   background-color: var(--toss-surface-lowest);
 }
 
-/* Dark-mode-safe nav/header blur bg */
+/* nav/header blur bg */
 .toss-nav-bg {
   background-color: var(--toss-surface-lowest);
 }

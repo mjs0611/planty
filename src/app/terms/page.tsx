@@ -179,7 +179,7 @@ export default function TermsPage() {
         </p>
         <h1
           className="text-2xl font-black"
-          style={{ fontFamily: "var(--font-headline, sans-serif)" }}
+         
         >
           서비스 이용약관
         </h1>
@@ -208,7 +208,7 @@ export default function TermsPage() {
             <section>
               <h2
                 className="text-[15px] font-black mb-3"
-                style={{ color: "var(--toss-on-surface, #1b1c1c)", fontFamily: "var(--font-headline, sans-serif)" }}
+                style={{ color: "var(--toss-on-surface, #1b1c1c)" }}
               >
                 {sec.title}
               </h2>

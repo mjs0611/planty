@@ -1,6 +1,5 @@
 // ── Storage ──────────────────────────────────────────────────────────────────
 export const STORAGE_KEY = "planty_state";
-export const ONBOARDED_KEY = "planty_onboarded";
 
 // ── Cooldowns (ms) ────────────────────────────────────────────────────────────
 export const MINI_WATERING_COOLDOWN_MS = 2 * 60 * 60 * 1000;
