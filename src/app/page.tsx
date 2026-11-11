@@ -48,7 +48,7 @@ function HeroXpBar({ xp, xpRequired }: { xp: number; xpRequired: number }) {
         className="progress-fill h-full rounded-full"
         style={{
           transform: `scaleX(${Math.min(xp / xpRequired, 1)})`,
-          background: "#1B64DA",
+          background: "var(--primary)",
         }}
       />
     </div>
@@ -671,7 +671,7 @@ const { toast, openToast } = useToast();
             <p className="text-lg font-bold" style={{ color: "var(--toss-secondary)" }}>+{milestone.bonusXp} XP 보너스!</p>
             <button
               className="mt-5 w-full py-3 font-bold rounded-2xl text-white"
-              style={{ background: "#1B64DA" }}
+              style={{ background: "var(--primary)" }}
               onClick={() => setMilestone(null)}
             >
               계속 키우기 🌱
@@ -715,7 +715,7 @@ const { toast, openToast } = useToast();
               </button>
               <button
                 className="flex-1 py-3 rounded-2xl font-bold text-white"
-                style={{ background: "#1B64DA" }}
+                style={{ background: "var(--primary)" }}
                 onClick={handleSaveName}
               >
                 저장하기

@@ -173,7 +173,7 @@ export default function TermsPage() {
       <div className="mb-8">
         <p
           className="text-sm font-black uppercase tracking-widest mb-1"
-          style={{ color: "var(--toss-primary, #004ecb)" }}
+          style={{ color: "var(--toss-primary, #1B64DA)" }}
         >
           Planty
         </p>
@@ -201,7 +201,7 @@ export default function TermsPage() {
         {SECTIONS.map((sec, idx) => (
           <div key={idx}>
             {sec.chapter && (
-              <p className="text-sm font-black uppercase tracking-widest mb-3 mt-6" style={{ color: "var(--toss-primary, #004ecb)" }}>
+              <p className="text-sm font-black uppercase tracking-widest mb-3 mt-6" style={{ color: "var(--toss-primary, #1B64DA)" }}>
                 {sec.chapter}
               </p>
             )}
@@ -221,7 +221,7 @@ export default function TermsPage() {
                 <ul className="space-y-2">
                   {sec.items.map((item, i) => (
                     <li key={i} className="flex gap-2 text-sm leading-relaxed" style={{ color: "var(--toss-on-surface-variant, #424656)" }}>
-                      <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #004ecb)" }}>
+                      <span className="flex-shrink-0 font-bold" style={{ color: "var(--toss-primary, #1B64DA)" }}>
                         {String(i + 1).padStart(2, "0")}
                       </span>
                       <span>{item}</span>

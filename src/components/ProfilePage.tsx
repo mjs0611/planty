@@ -100,7 +100,7 @@ export default function ProfilePage({ plant, onEditName, onRecover }: Props) {
                   className="progress-fill h-full rounded-full"
                   style={{
                     transform: `scaleX(${Math.min(progress, 100) / 100})`,
-                    background: "#1B64DA",
+                    background: "var(--primary)",
                   }}
                 />
               </div>

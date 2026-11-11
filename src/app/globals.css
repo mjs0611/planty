@@ -5,8 +5,8 @@
 
 :root {
   /* Toss Design System — Light */
-  --toss-primary: #1B64DA;
-  --toss-primary-container: #1B64DA;
+  --primary: #1B64DA; --primary-pressed: #1957C2; --primary-weak: #E8F3FF; --on-primary: #FFFFFF; --toss-primary: var(--primary);
+  --toss-primary-container: var(--primary);
   --toss-secondary: #006c49;
   --toss-secondary-fixed: #63fdbb;
   --toss-surface: #fbf9f8;
@@ -19,7 +19,7 @@
   --toss-card-bg: #ffffff;
 
   /* Legacy tokens (mapped to Toss values) */
-  --color-primary: #1B64DA;
+  --color-primary: var(--primary);
   --color-success: #006c49;
   --color-warning: #925000;
   --color-danger: #ba1a1a;
@@ -71,7 +71,7 @@ input { caret-color: var(--toss-primary); }
 .bottom-navigation { bottom: calc(16px + env(safe-area-inset-bottom)); }
 
 .primary-care-button, .secondary-care-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; padding: 16px; border-radius: 16px; font-size: 1rem; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
-.primary-care-button { background: #1B64DA; color: white; }
+.primary-care-button { background: var(--primary); color: white; }
 .secondary-care-button { background: var(--toss-surface-low); color: var(--toss-primary); }
 .watering-action button:disabled { background: var(--toss-surface-high); color: var(--toss-on-surface-variant); cursor: default; }
 .watering-action button[data-completed="true"] { background: var(--toss-secondary); color: var(--toss-surface-lowest); }
@@ -264,7 +264,7 @@ input { caret-color: var(--toss-primary); }
 .garden-miniatures img { object-fit: contain; }
 .garden-view { color: var(--toss-on-surface); overflow-wrap: anywhere; }
 .garden-collection-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 0.75rem; }
-.garden-care-button { width: 100%; min-height: 48px; margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 1rem; font-size: 1rem; font-weight: 700; background: #004ecb; color: white; }
+.garden-care-button { width: 100%; min-height: 48px; margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 1rem; font-size: 1rem; font-weight: 700; background: var(--primary); color: white; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition-property: opacity !important; transition-duration: 120ms !important; scroll-behavior: auto !important; }
   button:active:not(:disabled), a[href]:active { scale: none !important; transform: none !important; }
